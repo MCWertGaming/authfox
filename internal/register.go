@@ -108,7 +108,10 @@ func registerUser(client *mongo.Client) gin.HandlerFunc {
 
 // check the send user data for correctnes and forbidden values
 func checkSendUserProfile(profile sendUserProfile) bool {
-	// TODO: refuse if the name is not between 3-32 characters
+	// refuse if the name is not between 3-32 characters
+	if len(profile.NameFormat) < 3 && len(profile.NameFormat) > 32 {
+		return false
+	}
 	// TODO: refuse if the name is already used
 	// TODO: refuse if the name contains slurs / forbidden words
 	// TODO: refuse if @ is used
@@ -124,7 +127,10 @@ func checkSendUserProfile(profile sendUserProfile) bool {
 	if profile.Email == "" {
 		return false
 	}
-	// TODO: refuse if the password is under 8 chars
+	// refuse if the password is under 8 chars
+	if len(profile.Password) < 8 {
+		return false
+	}
 	// TODO: refuse on weak passwords
 	if profile.Password == "" {
 		return false
