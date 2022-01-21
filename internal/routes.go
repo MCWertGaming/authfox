@@ -5,6 +5,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func SetRoutes(router *gin.Engine, client *mongo.Client) {
-	router.POST("/v1/register", registerUser(client))
+func SetRoutes(router *gin.Engine, collUsers *mongo.Collection, collVerify *mongo.Collection, collSession *mongo.Collection) {
+	router.POST("/v1/register", registerUser(collUsers, collVerify, collSession))
 }

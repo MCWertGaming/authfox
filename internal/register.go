@@ -32,14 +32,8 @@ type saveVerifyUser struct {
 	VerifyCode   string    `bson:"verify_code"`
 }
 
-func registerUser(client *mongo.Client) gin.HandlerFunc {
-
+func registerUser(collUsers *mongo.Collection, collVerify *mongo.Collection, collSession *mongo.Collection) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// TODO: move into main
-		collUsers := client.Database("authfox").Collection("users")
-		collVerify := client.Database("authfox").Collection("verify")
-		collSession := client.Database("authfox").Collection("session")
-
 		// only answer if content-type is set right
 		if c.GetHeader("Content-Type") != "application/json" {
 			c.AbortWithStatus(http.StatusBadRequest)
