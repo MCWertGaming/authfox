@@ -74,7 +74,7 @@ func registerUser(collUsers *mongo.Collection, collVerify *mongo.Collection, col
 		// fill other user data
 		userData.NameFormat = sendUserStruct.NameFormat
 		userData.NameStatic = strings.ToLower(sendUserStruct.NameFormat)
-		userData.Email = sendUserStruct.Email
+		userData.Email = strings.ToLower(sendUserStruct.Email)
 		userData.RegisterIP = c.ClientIP()
 		userData.RegisterTime = time.Now()
 		if userData.VerifyCode, err = security.RandomString(32); err != nil {
