@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/mail"
+	"strings"
 
 	loghelper "github.com/PurotoApp/authfox/internal/logHelper"
 	"github.com/PurotoApp/authfox/internal/security"
@@ -124,10 +125,10 @@ func findUserData(collUser *mongo.Collection, collVerify *mongo.Collection, logi
 		loginType = "name_static"
 	}
 
-	doc := bson.D{{Key: loginType, Value: login}}
-
+	// sanitize string to prevent SQL injections
+	sanitizedLogin := strings.Trim(login, " $/^\\")
 	// search for the email address in User DB
-	userData = collUser.FindOne(context.TODO(), doc)
+	userData = collUser.FindOne(context.TODO(), bson.D{{Key: loginType, Value: sanitizedLogin}})
 	// check if a Document was found
 	if userData.Err() == mongo.ErrNoDocuments {
 		// user was not found in user DB, check the verify DB
