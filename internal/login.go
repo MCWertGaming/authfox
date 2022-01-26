@@ -124,8 +124,10 @@ func findUserData(collUser *mongo.Collection, collVerify *mongo.Collection, logi
 		loginType = "name_static"
 	}
 
+	doc := bson.D{{Key: loginType, Value: login}}
+
 	// search for the email address in User DB
-	userData = collUser.FindOne(context.TODO(), bson.D{{Key: loginType, Value: login}})
+	userData = collUser.FindOne(context.TODO(), doc)
 	// check if a Document was found
 	if userData.Err() == mongo.ErrNoDocuments {
 		// user was not found in user DB, check the verify DB
