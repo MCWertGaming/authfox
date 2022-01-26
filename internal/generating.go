@@ -56,6 +56,7 @@ func generateSessionToken(collSession *mongo.Collection) (string, error) {
 		// TODO: Skip after the first found
 		// TODO: Set timeout to 100ms
 		count, err = collSession.CountDocuments(context.TODO(), bson.D{{Key: "token", Value: token}})
+		// TODO: Also search the verify session
 		if err != nil {
 			return "", err
 		}

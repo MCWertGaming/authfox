@@ -32,7 +32,7 @@ type saveVerifyUser struct {
 	VerifyCode   string    `bson:"verify_code"`
 }
 
-func registerUser(collUsers *mongo.Collection, collVerify *mongo.Collection, collSession *mongo.Collection) gin.HandlerFunc {
+func registerUser(collUsers, collVerify, collSession, collVerifySession *mongo.Collection) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// only answer if content-type is set right
 		if c.GetHeader("Content-Type") != "application/json" {
@@ -50,7 +50,7 @@ func registerUser(collUsers *mongo.Collection, collVerify *mongo.Collection, col
 			return
 		}
 		// make sure that the received values are legal
-		if !checkSendUserProfile(sendUserStruct) {
+		if !checkSendUserProfile(&sendUserStruct) {
 			c.AbortWithStatus(http.StatusBadRequest)
 			loghelper.LogEvent("authfox", "registerUser(): Received invalid or illegal registration data")
 			return
@@ -90,7 +90,7 @@ func registerUser(collUsers *mongo.Collection, collVerify *mongo.Collection, col
 		// store into DB
 		addVerifyUser(userData, collVerify)
 		// create session
-		session, err := createSession(userData.UserID, collSession)
+		session, err := createSession(userData.UserID, collSession, collVerifySession, true)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			loghelper.LogError("authfox", err)
@@ -101,7 +101,7 @@ func registerUser(collUsers *mongo.Collection, collVerify *mongo.Collection, col
 }
 
 // check the send user data for correctnes and forbidden values
-func checkSendUserProfile(profile sendUserProfile) bool {
+func checkSendUserProfile(profile *sendUserProfile) bool {
 	// TODO: refuse if the name is not between 3-32 characters
 	// TODO: refuse if the name is already used
 	// TODO: refuse if the name contains slurs / forbidden words
