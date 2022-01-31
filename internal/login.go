@@ -28,8 +28,11 @@ type savedUserData struct {
 	Email      string `bson:"email"`
 	Password   string `bson:"password"`
 }
+type userID struct {
+	UserID string `bson:"uid"`
+}
 
-func loginUser(collUser, collSession, collVerifySession, collVerify *mongo.Collection) gin.HandlerFunc {
+func loginUser(collUser, collSession, collVerifySession, collVerify, collProfiles *mongo.Collection) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// only answer if content-type is set right
 		if c.GetHeader("Content-Type") != "application/json" {
@@ -52,7 +55,7 @@ func loginUser(collUser, collSession, collVerifySession, collVerify *mongo.Colle
 			return
 		}
 		// find user
-		userData, verify, err := findUserData(collUser, collVerify, sendLoginStruct.LoginName)
+		userData, verify, err := findUserData(collUser, collVerify, collProfiles, sendLoginStruct.LoginName)
 		// check if the given user not existed
 		if err == ErrAccountNotExisting {
 			c.AbortWithStatus(http.StatusUnauthorized)
@@ -116,34 +119,46 @@ func checkEmail(value string) bool {
 	return err == nil
 }
 
-func findUserData(collUser *mongo.Collection, collVerify *mongo.Collection, login string) (userData *mongo.SingleResult, verify bool, err error) {
+func findUserData(collUser, collVerify, collProfiles *mongo.Collection, login string) (userData *mongo.SingleResult, verify bool, err error) {
 	// set the search parameter
 	var loginType string
-	if checkEmail(login) {
+	if checkEmail(strings.ToLower(login)) {
 		loginType = "email"
 	} else {
 		loginType = "name_static"
 	}
 
-	// sanitize string to prevent SQL injections
-	sanitizedLogin := strings.Trim(login, " $/^\\")
-	// search for the email address in User DB
-	userData = collUser.FindOne(context.TODO(), bson.D{{Key: loginType, Value: sanitizedLogin}})
-	// check if a Document was found
-	if userData.Err() == mongo.ErrNoDocuments {
+	// find user profile
+	userProfile := collProfiles.FindOne(context.TODO(), bson.D{{Key: loginType, Value: strings.ToLower(login)}})
+	// check if a profile was found
+	if userProfile.Err() == mongo.ErrNoDocuments {
 		// user was not found in user DB, check the verify DB
-		userData = collVerify.FindOne(context.TODO(), bson.D{{Key: loginType, Value: login}})
+		userData = collVerify.FindOne(context.TODO(), bson.D{{Key: loginType, Value: strings.ToLower(login)}})
 		// check if a user was found this time
 		if userData.Err() == mongo.ErrNoDocuments {
 			// user does not excist
-			return nil, true, ErrAccountNotExisting
+			return &mongo.SingleResult{}, true, ErrAccountNotExisting
 		} else if userData.Err() != nil {
-			return nil, true, userData.Err()
+			return &mongo.SingleResult{}, true, userData.Err()
 		}
 		// valid data was found as it seems!
 		return userData, true, nil
-	} else if userData.Err() != nil {
-		return nil, true, userData.Err()
+	} else if userProfile.Err() != nil {
+		return &mongo.SingleResult{}, true, userProfile.Err()
 	}
+	// A profile was found, encoding it to get the UserID
+	var userIDStruct userID
+	if err := userProfile.Decode(&userIDStruct); err != nil {
+		return &mongo.SingleResult{}, true, err
+	}
+	// get the data we need
+	userData = collUser.FindOne(context.TODO(), bson.D{{Key: "uid", Value: userIDStruct.UserID}})
+	if userData.Err() == mongo.ErrNoDocuments {
+		// user does not excist
+		return &mongo.SingleResult{}, true, ErrAccountNotExisting
+	} else if userData.Err() != nil {
+		return &mongo.SingleResult{}, true, userData.Err()
+	}
+	// valid data was found as it seems!
 	return userData, false, nil
 }

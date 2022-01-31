@@ -1,6 +1,8 @@
 package authfox
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -8,8 +10,11 @@ import (
 	loghelper "github.com/PurotoApp/authfox/internal/logHelper"
 	"github.com/PurotoApp/authfox/internal/security"
 	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
+
+var ErrReceivedUserThatExists = errors.New("checkUserExists(): Received a user that already exists")
 
 // This struct stores user informations send to the register API endpoint
 type sendUserProfile struct {
@@ -32,7 +37,13 @@ type saveVerifyUser struct {
 	VerifyCode   string    `bson:"verify_code"`
 }
 
-func registerUser(collUsers, collVerify, collSession, collVerifySession *mongo.Collection) gin.HandlerFunc {
+// This is like sessionPair but without the session type switch
+type returnSession struct {
+	UserID string `json:"uid"`
+	Token  string `json:"token"`
+}
+
+func registerUser(collUsers, collVerify, collSession, collVerifySession, collProfiles *mongo.Collection) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// only answer if content-type is set right
 		if c.GetHeader("Content-Type") != "application/json" {
@@ -53,6 +64,18 @@ func registerUser(collUsers, collVerify, collSession, collVerifySession *mongo.C
 		if !checkSendUserProfile(&sendUserStruct) {
 			c.AbortWithStatus(http.StatusBadRequest)
 			loghelper.LogEvent("authfox", "registerUser(): Received invalid or illegal registration data")
+			return
+		}
+
+		// check if the given email or user name already exists
+		exists, err := checkUserExists(sendUserStruct.NameFormat, sendUserStruct.Email, collVerify, collProfiles)
+		if err == ErrReceivedUserThatExists || exists {
+			c.AbortWithStatus(http.StatusBadRequest)
+			loghelper.LogError("authfox", err)
+			return
+		} else if err != nil {
+			c.AbortWithStatus(http.StatusInternalServerError)
+			loghelper.LogError("authfox", err)
 			return
 		}
 
@@ -96,7 +119,13 @@ func registerUser(collUsers, collVerify, collSession, collVerifySession *mongo.C
 			loghelper.LogError("authfox", err)
 			return
 		}
-		c.JSON(http.StatusAccepted, session)
+
+		// remove the session type as it is always true
+		var basicSession returnSession
+		basicSession.UserID = session.UserID
+		basicSession.Token = session.Token
+
+		c.JSON(http.StatusAccepted, basicSession)
 	}
 }
 
@@ -124,4 +153,50 @@ func checkSendUserProfile(profile *sendUserProfile) bool {
 		return false
 	}
 	return true
+}
+
+// returns true if a user exists with the given name
+func checkUserExists(name, email string, collVerify, collProfiles *mongo.Collection) (bool, error) {
+	// count users with the given name
+	// TODO: Stop after the first one
+	// TODO: limit duration to 50ms
+	count, err := collVerify.CountDocuments(context.TODO(), bson.D{{Key: "name_static", Value: strings.ToLower(name)}})
+	if err != nil {
+		return true, err
+	}
+	if count != 0 {
+		return true, ErrReceivedUserThatExists
+	}
+	// TODO: Stop after the first was found
+	// TODO: Limit to 50ms
+	count, err = collProfiles.CountDocuments(context.TODO(), bson.D{{Key: "name_static", Value: strings.ToLower(name)}})
+	if err != nil {
+		return true, err
+	}
+	if count != 0 {
+		return true, ErrReceivedUserThatExists
+	}
+
+	// count users with the given email
+	// TODO: Stop after the first one
+	// TODO: limit duration to 50ms
+	count, err = collVerify.CountDocuments(context.TODO(), bson.D{{Key: "email", Value: strings.ToLower(email)}})
+	if err != nil {
+		return true, err
+	}
+	if count != 0 {
+		return true, ErrReceivedUserThatExists
+	}
+	// TODO: Stop after the first was found
+	// TODO: Limit to 50ms
+	count, err = collProfiles.CountDocuments(context.TODO(), bson.D{{Key: "email", Value: strings.ToLower(email)}})
+	if err != nil {
+		return true, err
+	}
+	if count != 0 {
+		return true, ErrReceivedUserThatExists
+	}
+
+	// no account with the given values exists
+	return false, nil
 }
