@@ -1,4 +1,4 @@
-package authfox
+package endpoints
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/PurotoApp/authfox/internal/security"
+	"github.com/PurotoApp/authfox/internal/sessionHelper"
 	"github.com/PurotoApp/libpuroto/logHelper"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
@@ -90,7 +91,7 @@ func loginUser(collUser, collSession, collVerifySession, collVerify, collProfile
 		}
 
 		// create session
-		session, err := createSession(localUserData.UserID, collSession, collVerifySession, verify)
+		session, err := sessionHelper.CreateSession(localUserData.UserID, collSession, collVerifySession, verify)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			logHelper.LogError("authfox", err)

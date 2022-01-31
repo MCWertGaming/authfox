@@ -1,4 +1,4 @@
-package authfox
+package endpoints
 
 import (
 	"context"

@@ -1,4 +1,4 @@
-package authfox
+package sessionHelper
 
 import (
 	"context"
@@ -23,7 +23,7 @@ type sessionPair struct {
 	VerifyOnly bool   `json:"verify_only"`
 }
 
-func createSession(userID string, collSession, collVerifySession *mongo.Collection, verify bool) (sessionPair, error) {
+func CreateSession(userID string, collSession, collVerifySession *mongo.Collection, verify bool) (sessionPair, error) {
 	// genrate new token
 	token, err := generateSessionToken(collSession)
 	if err != nil {
@@ -58,7 +58,7 @@ func createSession(userID string, collSession, collVerifySession *mongo.Collecti
 }
 
 // returns true if the session is valid
-func sessionValid(uid, token *string, collVerifySession, collSession *mongo.Collection, verify bool) (bool, error) {
+func SessionValid(uid, token *string, collVerifySession, collSession *mongo.Collection, verify bool) (bool, error) {
 	var sessionDataRaw *mongo.SingleResult
 
 	// search for the session

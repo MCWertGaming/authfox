@@ -1,4 +1,4 @@
-package authfox
+package sessionHelper
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 )
 
 // generates a secure user ID
-func generateUserID(collUsers *mongo.Collection, collVerify *mongo.Collection) (string, error) {
+func GenerateUserID(collUsers *mongo.Collection, collVerify *mongo.Collection) (string, error) {
 	var userID string
 	var count_users, count_verify int64
 	var err error

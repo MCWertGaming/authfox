@@ -1,8 +1,8 @@
 package main
 
 import (
-	authfox "github.com/PurotoApp/authfox/internal"
-	"github.com/PurotoApp/authfox/internal/ginHelper"
+	"github.com/PurotoApp/authfox/internal/endpoints"
+	"github.com/PurotoApp/libpuroto/ginHelper"
 	"github.com/PurotoApp/libpuroto/logHelper"
 	"github.com/PurotoApp/libpuroto/mongoHelper"
 	"github.com/gin-gonic/gin"
@@ -32,7 +32,7 @@ func main() {
 	ginHelper.ConfigRouter(router)
 
 	// set routes
-	authfox.SetRoutes(router, collUsers, collVerify, collSession, collVerifySession, collProfiles)
+	endpoints.SetRoutes(router, collUsers, collVerify, collSession, collVerifySession, collProfiles)
 
 	// start
 	router.Run("localhost:3621")

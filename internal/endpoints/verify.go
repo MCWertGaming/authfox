@@ -1,4 +1,4 @@
-package authfox
+package endpoints
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/PurotoApp/authfox/internal/sessionHelper"
 	"github.com/PurotoApp/libpuroto/logHelper"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
@@ -58,7 +59,7 @@ func verifyUser(collVerifySession, collSession, collVerify, collProfiles, collUs
 			return
 		}
 
-		valid, err := sessionValid(&sendVerifyStruct.UserID, &sendVerifyStruct.Token, collVerifySession, collSession, true)
+		valid, err := sessionHelper.SessionValid(&sendVerifyStruct.UserID, &sendVerifyStruct.Token, collVerifySession, collSession, true)
 
 		if err == mongo.ErrNoDocuments {
 			c.AbortWithStatus(http.StatusUnauthorized)
