@@ -32,6 +32,12 @@ type saveVerifyUser struct {
 	VerifyCode   string    `bson:"verify_code"`
 }
 
+// This is like sessionPair but without the session type switch
+type returnSession struct {
+	UserID string `json:"uid"`
+	Token  string `json:"token"`
+}
+
 func registerUser(collUsers, collVerify, collSession, collVerifySession *mongo.Collection) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// only answer if content-type is set right
@@ -96,7 +102,13 @@ func registerUser(collUsers, collVerify, collSession, collVerifySession *mongo.C
 			loghelper.LogError("authfox", err)
 			return
 		}
-		c.JSON(http.StatusAccepted, session)
+
+		// remove the session type as it is always true
+		var basicSession returnSession
+		basicSession.UserID = session.UserID
+		basicSession.Token = session.Token
+
+		c.JSON(http.StatusAccepted, basicSession)
 	}
 }
 
