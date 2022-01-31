@@ -17,6 +17,7 @@ func main() {
 	collVerify := client.Database("authfox").Collection("verify")
 	collSession := client.Database("authfox").Collection("session")
 	collVerifySession := client.Database("authfox").Collection("verifySession")
+	collProfiles := client.Database("authfox").Collection("profiles")
 
 	// test the connection
 	loghelper.ErrorFatal(mongoHelper.TestDBConnection(client))
@@ -35,7 +36,7 @@ func main() {
 	ginHelper.ConfigRouter(router)
 
 	// set routes
-	authfox.SetRoutes(router, collUsers, collVerify, collSession, collVerifySession)
+	authfox.SetRoutes(router, collUsers, collVerify, collSession, collVerifySession, collProfiles)
 
 	// start
 	router.Run("localhost:3621")

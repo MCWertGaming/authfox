@@ -2,6 +2,7 @@ package authfox
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -54,4 +55,34 @@ func createSession(userID string, collSession, collVerifySession *mongo.Collecti
 	}
 
 	return sessionPair{Token: token, UserID: userID, VerifyOnly: verify}, nil
+}
+
+// returns true if the session is valid
+func sessionValid(uid, token *string, collVerifySession, collSession *mongo.Collection, verify bool) (bool, error) {
+	var sessionDataRaw *mongo.SingleResult
+
+	// search for the session
+	// TODO: limit to 50ms
+	if verify {
+		sessionDataRaw = collVerifySession.FindOne(context.TODO(), bson.D{{Key: "id", Value: uid}, {Key: "token", Value: token}})
+	} else {
+		sessionDataRaw = collSession.FindOne(context.TODO(), bson.D{{Key: "id", Value: uid}, {Key: "token", Value: token}})
+	}
+
+	// check error
+	if sessionDataRaw.Err() != nil {
+		return false, sessionDataRaw.Err()
+	}
+
+	// decode DB data
+	var localsessionData newSession
+	if err := sessionDataRaw.Decode(&localsessionData); err != nil {
+		return false, err
+	}
+	// check if the session is older than 7 days
+	if !localsessionData.CreationTime.Add(time.Hour * 60 * 7).After(time.Now()) {
+		return false, errors.New("sessionValid(): session is outdated")
+	}
+
+	return true, nil
 }
