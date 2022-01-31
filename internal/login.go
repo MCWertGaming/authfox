@@ -122,18 +122,18 @@ func checkEmail(value string) bool {
 func findUserData(collUser, collVerify, collProfiles *mongo.Collection, login string) (userData *mongo.SingleResult, verify bool, err error) {
 	// set the search parameter
 	var loginType string
-	if checkEmail(login) {
+	if checkEmail(strings.ToLower(login)) {
 		loginType = "email"
 	} else {
 		loginType = "name_static"
 	}
 
 	// find user profile
-	userProfile := collProfiles.FindOne(context.TODO(), bson.D{{Key: loginType, Value: login}})
+	userProfile := collProfiles.FindOne(context.TODO(), bson.D{{Key: loginType, Value: strings.ToLower(login)}})
 	// check if a profile was found
 	if userProfile.Err() == mongo.ErrNoDocuments {
 		// user was not found in user DB, check the verify DB
-		userData = collVerify.FindOne(context.TODO(), bson.D{{Key: loginType, Value: login}})
+		userData = collVerify.FindOne(context.TODO(), bson.D{{Key: loginType, Value: strings.ToLower(login)}})
 		// check if a user was found this time
 		if userData.Err() == mongo.ErrNoDocuments {
 			// user does not excist
