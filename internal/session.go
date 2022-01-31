@@ -64,9 +64,9 @@ func sessionValid(uid, token *string, collVerifySession, collSession *mongo.Coll
 	// search for the session
 	// TODO: limit to 50ms
 	if verify {
-		sessionDataRaw = collVerifySession.FindOne(context.TODO(), bson.D{{Key: "id", Value: uid}, {Key: "token", Value: token}})
+		sessionDataRaw = collVerifySession.FindOne(context.TODO(), bson.D{{Key: "uid", Value: uid}, {Key: "token", Value: token}})
 	} else {
-		sessionDataRaw = collSession.FindOne(context.TODO(), bson.D{{Key: "id", Value: uid}, {Key: "token", Value: token}})
+		sessionDataRaw = collSession.FindOne(context.TODO(), bson.D{{Key: "uid", Value: uid}, {Key: "token", Value: token}})
 	}
 
 	// check error
