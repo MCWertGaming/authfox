@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"net/mail"
 	"strings"
 
+	"github.com/PurotoApp/authfox/internal/logHelper"
 	"github.com/PurotoApp/authfox/internal/security"
 	"github.com/PurotoApp/authfox/internal/sessionHelper"
-	"github.com/PurotoApp/libpuroto/logHelper"
+	"github.com/PurotoApp/authfox/internal/stringHelper"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -114,16 +114,10 @@ func checkLoginData(loginData sendLogin) bool {
 	return true
 }
 
-// returns true if the given string is an email
-func checkEmail(value string) bool {
-	_, err := mail.ParseAddress(value)
-	return err == nil
-}
-
 func findUserData(collUser, collVerify, collProfiles *mongo.Collection, login string) (userData *mongo.SingleResult, verify bool, err error) {
 	// set the search parameter
 	var loginType string
-	if checkEmail(strings.ToLower(login)) {
+	if stringHelper.CheckEmail(strings.ToLower(login)) {
 		loginType = "email"
 	} else {
 		loginType = "name_static"

@@ -7,12 +7,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/PurotoApp/authfox/internal/logHelper"
 	"github.com/PurotoApp/authfox/internal/security"
 	"github.com/PurotoApp/authfox/internal/sessionHelper"
-	"github.com/PurotoApp/libpuroto/logHelper"
+	"github.com/PurotoApp/authfox/internal/stringHelper"
+
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 var ErrReceivedUserThatExists = errors.New("checkUserExists(): Received a user that already exists")
@@ -112,7 +115,12 @@ func registerUser(collUsers, collVerify, collSession, collVerifySession, collPro
 			return
 		}
 		// store into DB
-		addVerifyUser(userData, collVerify)
+		_, err = collVerify.InsertOne(context.TODO(), userData)
+		if err != nil {
+			c.AbortWithStatus(http.StatusInternalServerError)
+			logHelper.LogError("authfox", err)
+			return
+		}
 		// create session
 		session, err := sessionHelper.CreateSession(userData.UserID, collSession, collVerifySession, true)
 		if err != nil {
@@ -132,25 +140,19 @@ func registerUser(collUsers, collVerify, collSession, collVerifySession, collPro
 
 // check the send user data for correctnes and forbidden values
 func checkSendUserProfile(profile *sendUserProfile) bool {
-	// TODO: refuse if the name is not between 3-32 characters
-	// TODO: refuse if the name is already used
 	// TODO: refuse if the name contains slurs / forbidden words
-	// TODO: refuse if @ is used
-	// TODO: don't allow special characters: @ (space)
-	if profile.NameFormat == "" {
+	// TODO: don't allow special characters:
+	if strings.Count(profile.NameFormat, "") < 6 || strings.Count(profile.NameFormat, "") > 32 ||
+		strings.Count(profile.NameFormat, "@") > 0 || strings.Count(profile.NameFormat, " ") > 0 {
 		return false
 	}
-	// TODO: refuse if the email is in invalid format
+
 	// TODO: refuse if the email address is forbidden (trashmail etc)
-	// TODO: refuse if localhost is used
-	// TODO: refuse if the email is already used
-	// TODO: check how long the password can be before it breaks the hash
-	if profile.Email == "" {
+	if profile.Email == "" || stringHelper.CheckEmail(profile.Email) {
 		return false
 	}
-	// TODO: refuse if the password is under 8 chars
 	// TODO: refuse on weak passwords
-	if profile.Password == "" {
+	if strings.Count(profile.Password, "") < 9 || len(profile.Password) > 512 {
 		return false
 	}
 	return true
@@ -159,9 +161,8 @@ func checkSendUserProfile(profile *sendUserProfile) bool {
 // returns true if a user exists with the given name
 func checkUserExists(name, email string, collVerify, collProfiles *mongo.Collection) (bool, error) {
 	// count users with the given name
-	// TODO: Stop after the first one
 	// TODO: limit duration to 50ms
-	count, err := collVerify.CountDocuments(context.TODO(), bson.D{{Key: "name_static", Value: strings.ToLower(name)}})
+	count, err := collVerify.CountDocuments(context.TODO(), bson.D{{Key: "name_static", Value: strings.ToLower(name)}}, options.Count().SetLimit(1))
 	if err != nil {
 		return true, err
 	}
@@ -170,7 +171,7 @@ func checkUserExists(name, email string, collVerify, collProfiles *mongo.Collect
 	}
 	// TODO: Stop after the first was found
 	// TODO: Limit to 50ms
-	count, err = collProfiles.CountDocuments(context.TODO(), bson.D{{Key: "name_static", Value: strings.ToLower(name)}})
+	count, err = collProfiles.CountDocuments(context.TODO(), bson.D{{Key: "name_static", Value: strings.ToLower(name)}}, options.Count().SetLimit(1))
 	if err != nil {
 		return true, err
 	}
@@ -179,18 +180,16 @@ func checkUserExists(name, email string, collVerify, collProfiles *mongo.Collect
 	}
 
 	// count users with the given email
-	// TODO: Stop after the first one
 	// TODO: limit duration to 50ms
-	count, err = collVerify.CountDocuments(context.TODO(), bson.D{{Key: "email", Value: strings.ToLower(email)}})
+	count, err = collVerify.CountDocuments(context.TODO(), bson.D{{Key: "email", Value: strings.ToLower(email)}}, options.Count().SetLimit(1))
 	if err != nil {
 		return true, err
 	}
 	if count != 0 {
 		return true, ErrReceivedUserThatExists
 	}
-	// TODO: Stop after the first was found
 	// TODO: Limit to 50ms
-	count, err = collProfiles.CountDocuments(context.TODO(), bson.D{{Key: "email", Value: strings.ToLower(email)}})
+	count, err = collProfiles.CountDocuments(context.TODO(), bson.D{{Key: "email", Value: strings.ToLower(email)}}, options.Count().SetLimit(1))
 	if err != nil {
 		return true, err
 	}

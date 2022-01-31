@@ -7,6 +7,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // session information used for create a new session
@@ -45,9 +46,8 @@ func CreateSession(userID string, collSession, collVerifySession *mongo.Collecti
 		}
 	} else {
 		// check how many sessions are open
-		// TODO: Stop after five
 		// TODO: limit duration to 50ms
-		count, err := collSession.CountDocuments(context.TODO(), bson.D{{Key: "uid", Value: userID}})
+		count, err := collSession.CountDocuments(context.TODO(), bson.D{{Key: "uid", Value: userID}}, options.Count().SetLimit(5))
 		if err != nil {
 			return sessionPair{}, err
 		}

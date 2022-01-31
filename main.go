@@ -2,9 +2,9 @@ package main
 
 import (
 	"github.com/PurotoApp/authfox/internal/endpoints"
-	"github.com/PurotoApp/libpuroto/ginHelper"
-	"github.com/PurotoApp/libpuroto/logHelper"
-	"github.com/PurotoApp/libpuroto/mongoHelper"
+	"github.com/PurotoApp/authfox/internal/ginHelper"
+	"github.com/PurotoApp/authfox/internal/logHelper"
+	"github.com/PurotoApp/authfox/internal/mongoHelper"
 	"github.com/gin-gonic/gin"
 )
 

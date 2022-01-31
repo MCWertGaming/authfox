@@ -1,5 +1,7 @@
 github.com/PurotoApp/libpuroto v0.0.0-20220131195251-231346e8f92f h1:il4M1aLzfq+3LT6M/UFu1gRZXOKOJBDBDmUte8f1DPk=
 github.com/PurotoApp/libpuroto v0.0.0-20220131195251-231346e8f92f/go.mod h1:xFJiCognEU4klo7KBuhDt0SPCfjq5/y0TpkRfYJL5NA=
+github.com/PurotoApp/libpuroto v0.0.0-20220131221856-b1ecd457a876 h1:J+/Yh8ZyFwGrg0RCCtC/SaIWjMGzBs7XrsNkxVaSWBQ=
+github.com/PurotoApp/libpuroto v0.0.0-20220131221856-b1ecd457a876/go.mod h1:WCpZ22jJc1EqjxsW2EJfLTeYolaOX+O/chY4X6EYqQ4=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
