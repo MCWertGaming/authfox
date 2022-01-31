@@ -3,7 +3,7 @@ package main
 import (
 	authfox "github.com/PurotoApp/authfox/internal"
 	"github.com/PurotoApp/authfox/internal/ginHelper"
-	loghelper "github.com/PurotoApp/authfox/internal/logHelper"
+	"github.com/PurotoApp/authfox/internal/logHelper"
 	"github.com/PurotoApp/authfox/internal/mongoHelper"
 	"github.com/gin-gonic/gin"
 )
@@ -11,7 +11,7 @@ import (
 func main() {
 	// create DB connection
 	client, err := mongoHelper.ConnectDB(mongoHelper.GetDBUri())
-	loghelper.ErrorFatal(err)
+	logHelper.ErrorFatal(err)
 	// create collections
 	collUsers := client.Database("authfox").Collection("users")
 	collVerify := client.Database("authfox").Collection("verify")
@@ -19,12 +19,8 @@ func main() {
 	collVerifySession := client.Database("authfox").Collection("verifySession")
 	collProfiles := client.Database("authfox").Collection("profiles")
 
-	// test the connection
-	loghelper.ErrorFatal(mongoHelper.TestDBConnection(client))
-	// close connection on program exit
-	defer func() {
-		loghelper.ErrorFatal(mongoHelper.DisconnectDB(client))
-	}()
+	// test DB connection
+	logHelper.ErrorFatal(mongoHelper.TestDBConnection(client))
 
 	// set up gin
 	ginHelper.SwitchRelMode()
@@ -40,4 +36,7 @@ func main() {
 
 	// start
 	router.Run("localhost:3621")
+
+	// close DB connection
+	logHelper.ErrorFatal(mongoHelper.DisconnectDB(client))
 }
