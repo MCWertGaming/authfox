@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	loghelper "github.com/PurotoApp/authfox/internal/logHelper"
+	"github.com/PurotoApp/authfox/internal/logHelper"
 	"github.com/PurotoApp/authfox/internal/security"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
@@ -48,7 +48,7 @@ func registerUser(collUsers, collVerify, collSession, collVerifySession, collPro
 		// only answer if content-type is set right
 		if c.GetHeader("Content-Type") != "application/json" {
 			c.AbortWithStatus(http.StatusBadRequest)
-			loghelper.LogEvent("authfox", "registerUser(): Received request with wrong Content-Type header")
+			logHelper.LogEvent("authfox", "registerUser(): Received request with wrong Content-Type header")
 			return
 		}
 
@@ -57,13 +57,13 @@ func registerUser(collUsers, collVerify, collSession, collVerifySession, collPro
 		// put the json into the struct
 		if err := c.BindJSON(&sendUserStruct); err != nil {
 			c.AbortWithError(http.StatusBadRequest, err)
-			loghelper.LogError("authfox", err)
+			logHelper.LogError("authfox", err)
 			return
 		}
 		// make sure that the received values are legal
 		if !checkSendUserProfile(&sendUserStruct) {
 			c.AbortWithStatus(http.StatusBadRequest)
-			loghelper.LogEvent("authfox", "registerUser(): Received invalid or illegal registration data")
+			logHelper.LogEvent("authfox", "registerUser(): Received invalid or illegal registration data")
 			return
 		}
 
@@ -71,11 +71,11 @@ func registerUser(collUsers, collVerify, collSession, collVerifySession, collPro
 		exists, err := checkUserExists(sendUserStruct.NameFormat, sendUserStruct.Email, collVerify, collProfiles)
 		if err == ErrReceivedUserThatExists || exists {
 			c.AbortWithStatus(http.StatusBadRequest)
-			loghelper.LogError("authfox", err)
+			logHelper.LogError("authfox", err)
 			return
 		} else if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
-			loghelper.LogError("authfox", err)
+			logHelper.LogError("authfox", err)
 			return
 		}
 
@@ -86,7 +86,7 @@ func registerUser(collUsers, collVerify, collSession, collVerifySession, collPro
 		hash, err := security.CreateHash(sendUserStruct.Password)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
-			loghelper.LogError("authfox", err)
+			logHelper.LogError("authfox", err)
 			return
 		}
 		// safe the hashed password
@@ -102,12 +102,12 @@ func registerUser(collUsers, collVerify, collSession, collVerifySession, collPro
 		userData.RegisterTime = time.Now()
 		if userData.VerifyCode, err = security.RandomString(32); err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
-			loghelper.LogError("authfox", err)
+			logHelper.LogError("authfox", err)
 		}
 		// create user ID
 		if userData.UserID, err = generateUserID(collUsers, collVerify); err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
-			loghelper.LogError("authfox", err)
+			logHelper.LogError("authfox", err)
 			return
 		}
 		// store into DB
@@ -116,7 +116,7 @@ func registerUser(collUsers, collVerify, collSession, collVerifySession, collPro
 		session, err := createSession(userData.UserID, collSession, collVerifySession, true)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
-			loghelper.LogError("authfox", err)
+			logHelper.LogError("authfox", err)
 			return
 		}
 
@@ -135,7 +135,7 @@ func checkSendUserProfile(profile *sendUserProfile) bool {
 	// TODO: refuse if the name is already used
 	// TODO: refuse if the name contains slurs / forbidden words
 	// TODO: refuse if @ is used
-	// TODO: don't allow special characters
+	// TODO: don't allow special characters: @ (space)
 	if profile.NameFormat == "" {
 		return false
 	}

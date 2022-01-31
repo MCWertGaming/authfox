@@ -1,4 +1,4 @@
-package loghelper
+package logHelper
 
 import (
 	"fmt"

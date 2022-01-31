@@ -7,7 +7,7 @@ import (
 	"net/mail"
 	"strings"
 
-	loghelper "github.com/PurotoApp/authfox/internal/logHelper"
+	"github.com/PurotoApp/authfox/internal/logHelper"
 	"github.com/PurotoApp/authfox/internal/security"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
@@ -37,21 +37,21 @@ func loginUser(collUser, collSession, collVerifySession, collVerify, collProfile
 		// only answer if content-type is set right
 		if c.GetHeader("Content-Type") != "application/json" {
 			c.AbortWithStatus(http.StatusBadRequest)
-			loghelper.LogEvent("authfox", "loginUser(): Received request with wrong Content-Type header")
+			logHelper.LogEvent("authfox", "loginUser(): Received request with wrong Content-Type header")
 			return
 		}
 		var sendLoginStruct sendLogin
 
 		if err := c.BindJSON(&sendLoginStruct); err != nil {
 			c.AbortWithStatus(http.StatusBadRequest)
-			loghelper.LogError("authfox", err)
+			logHelper.LogError("authfox", err)
 			return
 		}
 
 		// check the data for validity
 		if !checkLoginData(sendLoginStruct) {
 			c.AbortWithStatus(http.StatusBadRequest)
-			loghelper.LogEvent("authfox", "loginUser(): Invalid data recieved")
+			logHelper.LogEvent("authfox", "loginUser(): Invalid data recieved")
 			return
 		}
 		// find user
@@ -59,12 +59,12 @@ func loginUser(collUser, collSession, collVerifySession, collVerify, collProfile
 		// check if the given user not existed
 		if err == ErrAccountNotExisting {
 			c.AbortWithStatus(http.StatusUnauthorized)
-			loghelper.LogEvent("authfox", "loginUser(): Received login for non existing user")
+			logHelper.LogEvent("authfox", "loginUser(): Received login for non existing user")
 			return
 			// check for internal error
 		} else if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
-			loghelper.LogError("authfox", err)
+			logHelper.LogError("authfox", err)
 			return
 		}
 
@@ -72,7 +72,7 @@ func loginUser(collUser, collSession, collVerifySession, collVerify, collProfile
 		var localUserData savedUserData
 		if err := userData.Decode(&localUserData); err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
-			loghelper.LogError("authfox", err)
+			logHelper.LogError("authfox", err)
 			return
 		}
 
@@ -80,12 +80,12 @@ func loginUser(collUser, collSession, collVerifySession, collVerify, collProfile
 		match, err := security.ComparePasswordAndHash(sendLoginStruct.Password, localUserData.Password)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
-			loghelper.LogError("authfox", err)
+			logHelper.LogError("authfox", err)
 			return
 		}
 		if !match {
 			c.AbortWithStatus(http.StatusUnauthorized)
-			loghelper.LogEvent("authfox", "loginUser(): Invalid password received")
+			logHelper.LogEvent("authfox", "loginUser(): Invalid password received")
 			return
 		}
 
@@ -93,7 +93,7 @@ func loginUser(collUser, collSession, collVerifySession, collVerify, collProfile
 		session, err := createSession(localUserData.UserID, collSession, collVerifySession, verify)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
-			loghelper.LogError("authfox", err)
+			logHelper.LogError("authfox", err)
 			return
 		}
 
