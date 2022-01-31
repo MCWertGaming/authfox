@@ -3,8 +3,8 @@ package main
 import (
 	authfox "github.com/PurotoApp/authfox/internal"
 	"github.com/PurotoApp/authfox/internal/ginHelper"
-	"github.com/PurotoApp/authfox/internal/logHelper"
-	"github.com/PurotoApp/authfox/internal/mongoHelper"
+	"github.com/PurotoApp/libpuroto/logHelper"
+	"github.com/PurotoApp/libpuroto/mongoHelper"
 	"github.com/gin-gonic/gin"
 )
 

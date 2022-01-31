@@ -3,7 +3,7 @@ package ginHelper
 import (
 	"os"
 
-	"github.com/PurotoApp/authfox/internal/logHelper"
+	"github.com/PurotoApp/libpuroto/logHelper"
 	"github.com/gin-gonic/gin"
 )
 
