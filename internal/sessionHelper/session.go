@@ -43,17 +43,28 @@ func CreateSession(userID string, collSession, collVerifySession *mongo.Collecti
 		if err != nil {
 			return sessionPair{}, err
 		}
-
 	} else {
+		// check how many sessions are open
+		// TODO: Stop after five
+		// TODO: limit duration to 50ms
+		count, err := collSession.CountDocuments(context.TODO(), bson.D{{Key: "uid", Value: userID}})
+		if err != nil {
+			return sessionPair{}, err
+		}
+		if count > 4 {
+			// the user has 5 or more sessions, let's remove one
+			_, err := collVerifySession.DeleteOne(context.TODO(), bson.M{"uid": userID})
+			if err != nil {
+				return sessionPair{}, err
+			}
+		}
+
 		// add session to the session DB
-		// TODO: delete the last session if 5 is reached
 		_, err = collSession.InsertOne(context.TODO(), newSession{Token: token, UserID: userID, CreationTime: time.Now()})
+		if err != nil {
+			return sessionPair{}, err
+		}
 	}
-
-	if err != nil {
-		return sessionPair{}, err
-	}
-
 	return sessionPair{Token: token, UserID: userID, VerifyOnly: verify}, nil
 }
 
