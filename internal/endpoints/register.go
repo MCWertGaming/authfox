@@ -163,7 +163,7 @@ func checkSendUserProfile(profile *sendUserProfile) bool {
 func checkUserExists(name, email string, collVerify, collProfiles *mongo.Collection) (bool, error) {
 	// count users with the given name
 	// TODO: limit duration to 50ms
-	count, err := collVerify.CountDocuments(context.TODO(), bson.D{{Key: "name_static", Value: strings.ToLower(name)}}, options.Count().SetLimit(1))
+	count, err := collVerify.CountDocuments(context.TODO(), bson.M{"name_static": strings.ToLower(name)}, options.Count().SetLimit(1))
 	if err != nil {
 		return true, err
 	}
@@ -172,7 +172,7 @@ func checkUserExists(name, email string, collVerify, collProfiles *mongo.Collect
 	}
 	// TODO: Stop after the first was found
 	// TODO: Limit to 50ms
-	count, err = collProfiles.CountDocuments(context.TODO(), bson.D{{Key: "name_static", Value: strings.ToLower(name)}}, options.Count().SetLimit(1))
+	count, err = collProfiles.CountDocuments(context.TODO(), bson.M{"name_static": strings.ToLower(name)}, options.Count().SetLimit(1))
 	if err != nil {
 		return true, err
 	}
