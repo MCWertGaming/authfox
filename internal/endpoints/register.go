@@ -1,4 +1,4 @@
-package authfox
+package endpoints
 
 import (
 	"context"
@@ -7,11 +7,15 @@ import (
 	"strings"
 	"time"
 
-	loghelper "github.com/PurotoApp/authfox/internal/logHelper"
+	"github.com/PurotoApp/authfox/internal/logHelper"
 	"github.com/PurotoApp/authfox/internal/security"
+	"github.com/PurotoApp/authfox/internal/sessionHelper"
+	"github.com/PurotoApp/authfox/internal/stringHelper"
+
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 var ErrReceivedUserThatExists = errors.New("checkUserExists(): Received a user that already exists")
@@ -48,7 +52,7 @@ func registerUser(collUsers, collVerify, collSession, collVerifySession, collPro
 		// only answer if content-type is set right
 		if c.GetHeader("Content-Type") != "application/json" {
 			c.AbortWithStatus(http.StatusBadRequest)
-			loghelper.LogEvent("authfox", "registerUser(): Received request with wrong Content-Type header")
+			logHelper.LogEvent("authfox", "registerUser(): Received request with wrong Content-Type header")
 			return
 		}
 
@@ -57,13 +61,13 @@ func registerUser(collUsers, collVerify, collSession, collVerifySession, collPro
 		// put the json into the struct
 		if err := c.BindJSON(&sendUserStruct); err != nil {
 			c.AbortWithError(http.StatusBadRequest, err)
-			loghelper.LogError("authfox", err)
+			logHelper.LogError("authfox", err)
 			return
 		}
 		// make sure that the received values are legal
 		if !checkSendUserProfile(&sendUserStruct) {
 			c.AbortWithStatus(http.StatusBadRequest)
-			loghelper.LogEvent("authfox", "registerUser(): Received invalid or illegal registration data")
+			logHelper.LogEvent("authfox", "registerUser(): Received invalid or illegal registration data")
 			return
 		}
 
@@ -71,11 +75,11 @@ func registerUser(collUsers, collVerify, collSession, collVerifySession, collPro
 		exists, err := checkUserExists(sendUserStruct.NameFormat, sendUserStruct.Email, collVerify, collProfiles)
 		if err == ErrReceivedUserThatExists || exists {
 			c.AbortWithStatus(http.StatusBadRequest)
-			loghelper.LogError("authfox", err)
+			logHelper.LogError("authfox", err)
 			return
 		} else if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
-			loghelper.LogError("authfox", err)
+			logHelper.LogError("authfox", err)
 			return
 		}
 
@@ -86,7 +90,7 @@ func registerUser(collUsers, collVerify, collSession, collVerifySession, collPro
 		hash, err := security.CreateHash(sendUserStruct.Password)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
-			loghelper.LogError("authfox", err)
+			logHelper.LogError("authfox", err)
 			return
 		}
 		// safe the hashed password
@@ -102,21 +106,26 @@ func registerUser(collUsers, collVerify, collSession, collVerifySession, collPro
 		userData.RegisterTime = time.Now()
 		if userData.VerifyCode, err = security.RandomString(32); err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
-			loghelper.LogError("authfox", err)
+			logHelper.LogError("authfox", err)
 		}
 		// create user ID
-		if userData.UserID, err = generateUserID(collUsers, collVerify); err != nil {
+		if userData.UserID, err = sessionHelper.GenerateUserID(collUsers, collVerify); err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
-			loghelper.LogError("authfox", err)
+			logHelper.LogError("authfox", err)
 			return
 		}
 		// store into DB
-		addVerifyUser(userData, collVerify)
-		// create session
-		session, err := createSession(userData.UserID, collSession, collVerifySession, true)
+		_, err = collVerify.InsertOne(context.TODO(), userData)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
-			loghelper.LogError("authfox", err)
+			logHelper.LogError("authfox", err)
+			return
+		}
+		// create session
+		session, err := sessionHelper.CreateSession(userData.UserID, collSession, collVerifySession, true)
+		if err != nil {
+			c.AbortWithStatus(http.StatusInternalServerError)
+			logHelper.LogError("authfox", err)
 			return
 		}
 
@@ -131,25 +140,20 @@ func registerUser(collUsers, collVerify, collSession, collVerifySession, collPro
 
 // check the send user data for correctnes and forbidden values
 func checkSendUserProfile(profile *sendUserProfile) bool {
-	// TODO: refuse if the name is not between 3-32 characters
-	// TODO: refuse if the name is already used
 	// TODO: refuse if the name contains slurs / forbidden words
-	// TODO: refuse if @ is used
-	// TODO: don't allow special characters
-	if profile.NameFormat == "" {
+	// TODO: don't allow special characters:
+	if strings.Count(profile.NameFormat, "") < 6 || strings.Count(profile.NameFormat, "") > 32 ||
+		strings.Count(profile.NameFormat, "@") > 0 || strings.Count(profile.NameFormat, " ") > 0 {
 		return false
 	}
-	// TODO: refuse if the email is in invalid format
+
 	// TODO: refuse if the email address is forbidden (trashmail etc)
-	// TODO: refuse if localhost is used
-	// TODO: refuse if the email is already used
-	// TODO: check how long the password can be before it breaks the hash
-	if profile.Email == "" {
+	if profile.Email == "" || !stringHelper.CheckEmail(profile.Email) {
 		return false
 	}
-	// TODO: refuse if the password is under 8 chars
+
 	// TODO: refuse on weak passwords
-	if profile.Password == "" {
+	if strings.Count(profile.Password, "") < 9 || len(profile.Password) > 512 {
 		return false
 	}
 	return true
@@ -158,9 +162,8 @@ func checkSendUserProfile(profile *sendUserProfile) bool {
 // returns true if a user exists with the given name
 func checkUserExists(name, email string, collVerify, collProfiles *mongo.Collection) (bool, error) {
 	// count users with the given name
-	// TODO: Stop after the first one
 	// TODO: limit duration to 50ms
-	count, err := collVerify.CountDocuments(context.TODO(), bson.D{{Key: "name_static", Value: strings.ToLower(name)}})
+	count, err := collVerify.CountDocuments(context.TODO(), bson.M{"name_static": strings.ToLower(name)}, options.Count().SetLimit(1))
 	if err != nil {
 		return true, err
 	}
@@ -169,7 +172,7 @@ func checkUserExists(name, email string, collVerify, collProfiles *mongo.Collect
 	}
 	// TODO: Stop after the first was found
 	// TODO: Limit to 50ms
-	count, err = collProfiles.CountDocuments(context.TODO(), bson.D{{Key: "name_static", Value: strings.ToLower(name)}})
+	count, err = collProfiles.CountDocuments(context.TODO(), bson.M{"name_static": strings.ToLower(name)}, options.Count().SetLimit(1))
 	if err != nil {
 		return true, err
 	}
@@ -178,18 +181,16 @@ func checkUserExists(name, email string, collVerify, collProfiles *mongo.Collect
 	}
 
 	// count users with the given email
-	// TODO: Stop after the first one
 	// TODO: limit duration to 50ms
-	count, err = collVerify.CountDocuments(context.TODO(), bson.D{{Key: "email", Value: strings.ToLower(email)}})
+	count, err = collVerify.CountDocuments(context.TODO(), bson.D{{Key: "email", Value: strings.ToLower(email)}}, options.Count().SetLimit(1))
 	if err != nil {
 		return true, err
 	}
 	if count != 0 {
 		return true, ErrReceivedUserThatExists
 	}
-	// TODO: Stop after the first was found
 	// TODO: Limit to 50ms
-	count, err = collProfiles.CountDocuments(context.TODO(), bson.D{{Key: "email", Value: strings.ToLower(email)}})
+	count, err = collProfiles.CountDocuments(context.TODO(), bson.D{{Key: "email", Value: strings.ToLower(email)}}, options.Count().SetLimit(1))
 	if err != nil {
 		return true, err
 	}

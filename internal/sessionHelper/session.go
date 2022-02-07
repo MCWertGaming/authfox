@@ -1,4 +1,4 @@
-package authfox
+package sessionHelper
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // session information used for create a new session
@@ -23,7 +24,7 @@ type sessionPair struct {
 	VerifyOnly bool   `json:"verify_only"`
 }
 
-func createSession(userID string, collSession, collVerifySession *mongo.Collection, verify bool) (sessionPair, error) {
+func CreateSession(userID string, collSession, collVerifySession *mongo.Collection, verify bool) (sessionPair, error) {
 	// genrate new token
 	token, err := generateSessionToken(collSession)
 	if err != nil {
@@ -43,22 +44,32 @@ func createSession(userID string, collSession, collVerifySession *mongo.Collecti
 		if err != nil {
 			return sessionPair{}, err
 		}
-
 	} else {
+		// check how many sessions are open
+		// TODO: limit duration to 50ms
+		count, err := collSession.CountDocuments(context.TODO(), bson.M{"uid": userID}, options.Count().SetLimit(5))
+		if err != nil {
+			return sessionPair{}, err
+		}
+		if count > 4 {
+			// the user has 5 or more sessions, let's remove one
+			_, err := collSession.DeleteOne(context.TODO(), bson.M{"uid": userID})
+			if err != nil {
+				return sessionPair{}, err
+			}
+		}
+
 		// add session to the session DB
-		// TODO: delete the last session if 5 is reached
 		_, err = collSession.InsertOne(context.TODO(), newSession{Token: token, UserID: userID, CreationTime: time.Now()})
+		if err != nil {
+			return sessionPair{}, err
+		}
 	}
-
-	if err != nil {
-		return sessionPair{}, err
-	}
-
 	return sessionPair{Token: token, UserID: userID, VerifyOnly: verify}, nil
 }
 
 // returns true if the session is valid
-func sessionValid(uid, token *string, collVerifySession, collSession *mongo.Collection, verify bool) (bool, error) {
+func SessionValid(uid, token *string, collVerifySession, collSession *mongo.Collection, verify bool) (bool, error) {
 	var sessionDataRaw *mongo.SingleResult
 
 	// search for the session

@@ -1,4 +1,4 @@
-package authfox
+package sessionHelper
 
 import (
 	"context"
@@ -7,10 +7,11 @@ import (
 	"github.com/PurotoApp/authfox/internal/security"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // generates a secure user ID
-func generateUserID(collUsers *mongo.Collection, collVerify *mongo.Collection) (string, error) {
+func GenerateUserID(collUsers *mongo.Collection, collVerify *mongo.Collection) (string, error) {
 	var userID string
 	var count_users, count_verify int64
 	var err error
@@ -21,15 +22,13 @@ func generateUserID(collUsers *mongo.Collection, collVerify *mongo.Collection) (
 			return "", err
 		}
 		// check if the token already exists
-		// TODO: Stop after the first found
 		// TODO: Set timeout to 100ms
-		count_users, err = collUsers.CountDocuments(context.TODO(), bson.D{{Key: "token", Value: userID}})
+		count_users, err = collUsers.CountDocuments(context.TODO(), bson.D{{Key: "token", Value: userID}}, options.Count().SetLimit(1))
 		if err != nil {
 			return "", err
 		}
-		// TODO: Stop after the first found
 		// TODO: set timeout to 100ms
-		count_verify, err = collVerify.CountDocuments(context.TODO(), bson.D{{Key: "token", Value: userID}})
+		count_verify, err = collVerify.CountDocuments(context.TODO(), bson.D{{Key: "token", Value: userID}}, options.Count().SetLimit(1))
 		if err != nil {
 			return "", err
 		}
@@ -53,9 +52,8 @@ func generateSessionToken(collSession *mongo.Collection) (string, error) {
 			return "", err
 		}
 		// check if the token already exists
-		// TODO: Skip after the first found
 		// TODO: Set timeout to 100ms
-		count, err = collSession.CountDocuments(context.TODO(), bson.D{{Key: "token", Value: token}})
+		count, err = collSession.CountDocuments(context.TODO(), bson.D{{Key: "token", Value: token}}, options.Count().SetLimit(1))
 		// TODO: Also search the verify session
 		if err != nil {
 			return "", err

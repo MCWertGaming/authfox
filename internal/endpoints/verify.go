@@ -1,4 +1,4 @@
-package authfox
+package endpoints
 
 import (
 	"context"
@@ -6,7 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	loghelper "github.com/PurotoApp/authfox/internal/logHelper"
+	"github.com/PurotoApp/authfox/internal/logHelper"
+	"github.com/PurotoApp/authfox/internal/sessionHelper"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -38,7 +39,7 @@ func verifyUser(collVerifySession, collSession, collVerify, collProfiles, collUs
 		// only answer if content-type is set right
 		if c.GetHeader("Content-Type") != "application/json" {
 			c.AbortWithStatus(http.StatusBadRequest)
-			loghelper.LogEvent("authfox", "registerUser(): Received request with wrong Content-Type header")
+			logHelper.LogEvent("authfox", "registerUser(): Received request with wrong Content-Type header")
 			return
 		}
 
@@ -47,30 +48,30 @@ func verifyUser(collVerifySession, collSession, collVerify, collProfiles, collUs
 		// put the json into the struct
 		if err := c.BindJSON(&sendVerifyStruct); err != nil {
 			c.AbortWithError(http.StatusBadRequest, err)
-			loghelper.LogError("authfox", err)
+			logHelper.LogError("authfox", err)
 			return
 		}
 
 		// check if the send values are valid
 		if !checkVerifyStruct(&sendVerifyStruct) {
 			c.AbortWithStatus(http.StatusBadRequest)
-			loghelper.LogEvent("authfox", "verifyUser(): Recived invalid data")
+			logHelper.LogEvent("authfox", "verifyUser(): Recived invalid data")
 			return
 		}
 
-		valid, err := sessionValid(&sendVerifyStruct.UserID, &sendVerifyStruct.Token, collVerifySession, collSession, true)
+		valid, err := sessionHelper.SessionValid(&sendVerifyStruct.UserID, &sendVerifyStruct.Token, collVerifySession, collSession, true)
 
 		if err == mongo.ErrNoDocuments {
 			c.AbortWithStatus(http.StatusUnauthorized)
-			loghelper.LogEvent("authfox", "verifyUser(): Received verification with non existent session")
+			logHelper.LogEvent("authfox", "verifyUser(): Received verification with non existent session")
 			return
 		} else if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
-			loghelper.LogError("authfox", err)
+			logHelper.LogError("authfox", err)
 			return
 		} else if !valid {
 			c.AbortWithStatus(http.StatusUnauthorized)
-			loghelper.LogEvent("authfox", "verifyUser(): Received verification with invalid session")
+			logHelper.LogEvent("authfox", "verifyUser(): Received verification with invalid session")
 			return
 		}
 
@@ -79,7 +80,7 @@ func verifyUser(collVerifySession, collSession, collVerify, collProfiles, collUs
 
 		if verifyUserRaw.Err() != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
-			loghelper.LogError("authfox", verifyUserRaw.Err())
+			logHelper.LogError("authfox", verifyUserRaw.Err())
 			return
 		}
 
@@ -87,14 +88,14 @@ func verifyUser(collVerifySession, collSession, collVerify, collProfiles, collUs
 		var localVerifyUser saveVerifyUser
 		if err := verifyUserRaw.Decode(&localVerifyUser); err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
-			loghelper.LogError("authfox", verifyUserRaw.Err())
+			logHelper.LogError("authfox", verifyUserRaw.Err())
 			return
 		}
 
 		// securely check if the verify roken is valid
 		if subtle.ConstantTimeCompare([]byte(sendVerifyStruct.VerifyCode), []byte(localVerifyUser.VerifyCode)) != 1 {
 			c.AbortWithStatus(http.StatusUnauthorized)
-			loghelper.LogEvent("authfox", "verifyUser(): Received verification with invalid Verify-Code")
+			logHelper.LogEvent("authfox", "verifyUser(): Received verification with invalid Verify-Code")
 			return
 		}
 
@@ -111,7 +112,7 @@ func verifyUser(collVerifySession, collSession, collVerify, collProfiles, collUs
 		_, err = collProfiles.InsertOne(context.TODO(), saveUserProfile)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
-			loghelper.LogError("authfox", err)
+			logHelper.LogError("authfox", err)
 			return
 		}
 
@@ -125,7 +126,7 @@ func verifyUser(collVerifySession, collSession, collVerify, collProfiles, collUs
 		_, err = collUsers.InsertOne(context.TODO(), saveUserDataStruct)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
-			loghelper.LogError("authfox", err)
+			logHelper.LogError("authfox", err)
 			return
 		}
 
@@ -133,7 +134,14 @@ func verifyUser(collVerifySession, collSession, collVerify, collProfiles, collUs
 		_, err = collVerify.DeleteOne(context.TODO(), bson.D{{Key: "uid", Value: sendVerifyStruct.UserID}})
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
-			loghelper.LogError("authfox", verifyUserRaw.Err())
+			logHelper.LogError("authfox", verifyUserRaw.Err())
+			return
+		}
+		// delete old session
+		_, err = collVerifySession.DeleteOne(context.TODO(), bson.D{{Key: "uid", Value: sendVerifyStruct.UserID}})
+		if err != nil {
+			c.AbortWithStatus(http.StatusInternalServerError)
+			logHelper.LogError("authfox", verifyUserRaw.Err())
 			return
 		}
 

@@ -1,9 +1,9 @@
 package main
 
 import (
-	authfox "github.com/PurotoApp/authfox/internal"
+	"github.com/PurotoApp/authfox/internal/endpoints"
 	"github.com/PurotoApp/authfox/internal/ginHelper"
-	loghelper "github.com/PurotoApp/authfox/internal/logHelper"
+	"github.com/PurotoApp/authfox/internal/logHelper"
 	"github.com/PurotoApp/authfox/internal/mongoHelper"
 	"github.com/gin-gonic/gin"
 )
@@ -11,7 +11,7 @@ import (
 func main() {
 	// create DB connection
 	client, err := mongoHelper.ConnectDB(mongoHelper.GetDBUri())
-	loghelper.ErrorFatal("MongoDB", err)
+	logHelper.ErrorFatal("MongoDB", err)
 	// create collections
 	collUsers := client.Database("authfox").Collection("users")
 	collVerify := client.Database("authfox").Collection("verify")
@@ -20,10 +20,11 @@ func main() {
 	collProfiles := client.Database("authfox").Collection("profiles")
 
 	// test the connection
-	loghelper.ErrorFatal("MongoDB", mongoHelper.TestDBConnection(client))
+	logHelper.ErrorFatal("MongoDB", mongoHelper.TestDBConnection(client))
 	// close connection on program exit
+	// TODO: execute on CTRL+C
 	defer func() {
-		loghelper.ErrorFatal("MongoDB", mongoHelper.DisconnectDB(client))
+		logHelper.ErrorFatal("MongoDB", mongoHelper.DisconnectDB(client))
 	}()
 
 	// set up gin
@@ -36,7 +37,7 @@ func main() {
 	ginHelper.ConfigRouter(router)
 
 	// set routes
-	authfox.SetRoutes(router, collUsers, collVerify, collSession, collVerifySession, collProfiles)
+	endpoints.SetRoutes(router, collUsers, collVerify, collSession, collVerifySession, collProfiles)
 
 	// start
 	router.Run("localhost:3621")
