@@ -148,9 +148,10 @@ func checkSendUserProfile(profile *sendUserProfile) bool {
 	}
 
 	// TODO: refuse if the email address is forbidden (trashmail etc)
-	if profile.Email == "" || stringHelper.CheckEmail(profile.Email) {
+	if profile.Email == "" || !stringHelper.CheckEmail(profile.Email) {
 		return false
 	}
+
 	// TODO: refuse on weak passwords
 	if strings.Count(profile.Password, "") < 9 || len(profile.Password) > 512 {
 		return false
