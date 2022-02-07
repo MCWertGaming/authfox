@@ -137,6 +137,13 @@ func verifyUser(collVerifySession, collSession, collVerify, collProfiles, collUs
 			logHelper.LogError("authfox", verifyUserRaw.Err())
 			return
 		}
+		// delete old session
+		_, err = collVerifySession.DeleteOne(context.TODO(), bson.D{{Key: "uid", Value: sendVerifyStruct.UserID}})
+		if err != nil {
+			c.AbortWithStatus(http.StatusInternalServerError)
+			logHelper.LogError("authfox", verifyUserRaw.Err())
+			return
+		}
 
 		c.Status(http.StatusAccepted)
 	}
