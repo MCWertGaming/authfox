@@ -1,15 +1,17 @@
 package logHelper
 
 import (
-	"fmt"
 	"log"
-	"time"
+	"runtime"
+
+	"github.com/fatih/color"
 )
 
-// TODO: make pretty [name] [FATAL] 12.01.2022 MESSAGE
-func ErrorFatal(err error) {
+func ErrorFatal(name string, err error) {
 	if err != nil {
-		log.Fatal(err)
+		clr := color.New(color.FgRed, color.Bold).SprintFunc()
+		_, filename, line, _ := runtime.Caller(1)
+		log.Fatalf("[%v] [%v] [%v:%v] %v", name, clr("FATAL"), filename, line, clr(err.Error()))
 	}
 }
 
@@ -20,8 +22,12 @@ func ErrorPanic(err error) {
 	}
 }
 func LogEvent(name string, message string) {
-	fmt.Println("[" + name + "] " + time.Now().Format("2006/01/02-15:04:05: ") + message)
+	clr := color.New(color.Bold).SprintFunc()
+	_, filename, line, _ := runtime.Caller(1)
+	log.Printf("[%v] [LOG] [%v:%v] %v", name, filename, line, clr(message))
 }
 func LogError(name string, err error) {
-	fmt.Println("[" + name + "] [ERROR] " + time.Now().Format("2006/01/02-15:04:05: ") + err.Error())
+	clr := color.New(color.FgRed).SprintFunc()
+	_, filename, line, _ := runtime.Caller(1)
+	log.Printf("[%v] [%v] [%v:%v] %v", name, clr("ERROR"), filename, line, clr(err.Error()))
 }

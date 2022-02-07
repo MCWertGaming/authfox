@@ -11,7 +11,7 @@ import (
 func main() {
 	// create DB connection
 	client, err := mongoHelper.ConnectDB(mongoHelper.GetDBUri())
-	logHelper.ErrorFatal(err)
+	loghelper.ErrorFatal("MongoDB", err)
 	// create collections
 	collUsers := client.Database("authfox").Collection("users")
 	collVerify := client.Database("authfox").Collection("verify")
@@ -19,8 +19,12 @@ func main() {
 	collVerifySession := client.Database("authfox").Collection("verifySession")
 	collProfiles := client.Database("authfox").Collection("profiles")
 
-	// test DB connection
-	logHelper.ErrorFatal(mongoHelper.TestDBConnection(client))
+	// test the connection
+	loghelper.ErrorFatal("MongoDB", mongoHelper.TestDBConnection(client))
+	// close connection on program exit
+	defer func() {
+		loghelper.ErrorFatal("MongoDB", mongoHelper.DisconnectDB(client))
+	}()
 
 	// set up gin
 	ginHelper.SwitchRelMode()
