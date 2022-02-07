@@ -47,13 +47,13 @@ func CreateSession(userID string, collSession, collVerifySession *mongo.Collecti
 	} else {
 		// check how many sessions are open
 		// TODO: limit duration to 50ms
-		count, err := collSession.CountDocuments(context.TODO(), bson.D{{Key: "uid", Value: userID}}, options.Count().SetLimit(5))
+		count, err := collSession.CountDocuments(context.TODO(), bson.M{"uid": userID}, options.Count().SetLimit(5))
 		if err != nil {
 			return sessionPair{}, err
 		}
 		if count > 4 {
 			// the user has 5 or more sessions, let's remove one
-			_, err := collVerifySession.DeleteOne(context.TODO(), bson.M{"uid": userID})
+			_, err := collSession.DeleteOne(context.TODO(), bson.M{"uid": userID})
 			if err != nil {
 				return sessionPair{}, err
 			}
