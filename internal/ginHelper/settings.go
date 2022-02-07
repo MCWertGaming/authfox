@@ -23,10 +23,10 @@ func ConfigRouter(router *gin.Engine) {
 		// TODO: allow users to specify trusted proxies
 		// TODO: what if proxy behind proxy
 		// TODO: what if no value specified
-		loghelper.ErrorFatal("Router", router.SetTrustedProxies(nil))
+		logHelper.ErrorFatal("Router", router.SetTrustedProxies(nil))
 	} else {
 		// turn off proxy support for debugging
-		loghelper.ErrorFatal("Router", router.SetTrustedProxies(nil))
+		logHelper.ErrorFatal("Router", router.SetTrustedProxies(nil))
 	}
 	// set health status route
 	router.GET("/health", getHealth)
