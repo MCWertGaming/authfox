@@ -12,8 +12,6 @@ func main() {
 	// create DB connection
 	client, err := mongoHelper.ConnectDB(mongoHelper.GetDBUri())
 	logHelper.ErrorFatal(err)
-	// close DB connection
-	defer logHelper.ErrorFatal(mongoHelper.DisconnectDB(client))
 	// create collections
 	collUsers := client.Database("authfox").Collection("users")
 	collVerify := client.Database("authfox").Collection("verify")
@@ -38,4 +36,7 @@ func main() {
 
 	// start
 	router.Run("localhost:3621")
+
+	// close DB connection
+	defer logHelper.ErrorFatal(mongoHelper.DisconnectDB(client))
 }
