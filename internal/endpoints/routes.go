@@ -9,4 +9,5 @@ func SetRoutes(router *gin.Engine, collUsers, collVerify, collSession, collVerif
 	router.POST("/v1/register", registerUser(collUsers, collVerify, collSession, collVerifySession, collProfiles))
 	router.POST("/v1/login", loginUser(collUsers, collSession, collVerifySession, collVerify, collProfiles))
 	router.POST("/v1/verify", verifyUser(collVerifySession, collSession, collVerify, collProfiles, collUsers))
+	router.POST("/v1/validate", validateSession(collVerifySession, collSession))
 }

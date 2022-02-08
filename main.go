@@ -27,9 +27,6 @@ func main() {
 		logHelper.ErrorFatal("MongoDB", mongoHelper.DisconnectDB(client))
 	}()
 
-	// set up gin
-	ginHelper.SwitchRelMode()
-
 	// create router
 	router := gin.Default()
 
