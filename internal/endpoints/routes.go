@@ -11,4 +11,5 @@ func SetRoutes(router *gin.Engine, collUsers, collVerify, collSession, collVerif
 	router.POST("/v1/verify", verifyUser(collVerifySession, collSession, collVerify, collProfiles, collUsers))
 	router.POST("/v1/validate", validateSession(collVerifySession, collSession))
 	router.POST("/v1/update", updatePassword(collVerifySession, collSession, collUsers))
+	router.POST("/v1/remove", accountDeletion(collVerifySession, collSession, collUsers, collProfiles))
 }

@@ -12,18 +12,13 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-type sendUpdateData struct {
-	UserID      string `json:"uid"`
-	Token       string `json:"token"`
-	PasswordOld string `json:"password_old"`
-	PasswordNew string `json:"password_new"`
+type sendRemoveData struct {
+	UserID   string `json:"uid"`
+	Token    string `json:"token"`
+	Password string `json:"password"`
 }
 
-type passwordData struct {
-	Password string `bson:"password"`
-}
-
-func updatePassword(collVerifySession, collSession, collUser *mongo.Collection) gin.HandlerFunc {
+func accountDeletion(collVerifySession, collSession, collUser, collProfile *mongo.Collection) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// about on incorrect request-header
 		if c.GetHeader("Content-Type") != "application/json" {
@@ -32,7 +27,7 @@ func updatePassword(collVerifySession, collSession, collUser *mongo.Collection) 
 			return
 		}
 
-		var sendDataStruct sendUpdateData
+		var sendDataStruct sendRemoveData
 
 		// put the json into the struct
 		if err := c.BindJSON(&sendDataStruct); err != nil {
@@ -53,7 +48,7 @@ func updatePassword(collVerifySession, collSession, collUser *mongo.Collection) 
 			return
 		}
 
-		// validate old password
+		// validate password
 		// get the data we need
 		userData := collUser.FindOne(context.TODO(), bson.D{{Key: "uid", Value: sendDataStruct.UserID}})
 		if userData.Err() != nil {
@@ -69,7 +64,7 @@ func updatePassword(collVerifySession, collSession, collUser *mongo.Collection) 
 			return
 		}
 		// compare passwords
-		match, err := security.ComparePasswordAndHash(sendDataStruct.PasswordOld, passwordLocal.Password)
+		match, err := security.ComparePasswordAndHash(sendDataStruct.Password, passwordLocal.Password)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			logHelper.LogError("authfox", err)
@@ -81,21 +76,28 @@ func updatePassword(collVerifySession, collSession, collUser *mongo.Collection) 
 			return
 		}
 
-		// update password
-		// TODO recycle hash
-		passwordLocal.Password, err = security.CreateHash(sendDataStruct.PasswordNew)
+		// remove sessions
+		_, err = collSession.DeleteMany(context.TODO(), bson.D{{Key: "uid", Value: sendDataStruct.UserID}})
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
-			logHelper.LogError("authfox", err)
+			logHelper.LogEvent("authfox", "Invalid password received")
 			return
 		}
-		// store into DB
-		_, err = collUser.UpdateOne(context.TODO(), bson.D{{Key: "uid", Value: sendDataStruct.UserID}}, bson.D{{Key: "$set", Value: bson.D{{Key: "password", Value: passwordLocal.Password}}}}) // &passwordLocal)
+		// remove user
+		_, err = collUser.DeleteOne(context.TODO(), bson.D{{Key: "uid", Value: sendDataStruct.UserID}})
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
-			logHelper.LogError("authfox", err)
+			logHelper.LogEvent("authfox", "Invalid password received")
 			return
 		}
+		// remove profile
+		_, err = collProfile.DeleteOne(context.TODO(), bson.D{{Key: "uid", Value: sendDataStruct.UserID}})
+		if err != nil {
+			c.AbortWithStatus(http.StatusUnauthorized)
+			logHelper.LogEvent("authfox", "Invalid password received")
+			return
+		}
+		// TODO: remove posts
 
 		c.Status(http.StatusAccepted)
 	}
