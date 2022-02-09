@@ -3,6 +3,7 @@ package mongoHelper
 import (
 	"context"
 	"os"
+	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -25,7 +26,9 @@ func GetDBUri() string {
 	return "mongodb://" + db_user_name + ":" + db_password + "@" + db_host + "/" + db_database + "?authSource=" + db_authsource
 }
 func ConnectDB(URI string) (*mongo.Client, error) {
-	return mongo.Connect(context.TODO(), options.Client().ApplyURI(URI))
+	ctx,cancel := context.WithTimeout(context.Background(), time.Millisecond * 20)
+	defer cancel()
+	return mongo.Connect(ctx, options.Client().ApplyURI(URI))
 }
 func TestDBConnection(client *mongo.Client) error {
 	return client.Ping(context.TODO(), readpref.Primary())

@@ -32,14 +32,16 @@ func createSession(userID string, collSession, collVerifySession *mongo.Collecti
 
 	// save session
 	if verify {
+		ctx,cancel := context.WithTimeout(context.Background(), time.Millisecond * 20)
+		defer cancel()
 		// check and remove session
-		_, err := collVerifySession.DeleteOne(context.TODO(), bson.M{"uid": userID})
+		_, err := collVerifySession.DeleteOne(ctx, bson.M{"uid": userID})
 		if err != nil {
 			return sessionPair{}, err
 		}
 
 		// add session to the verify DB
-		_, err = collVerifySession.InsertOne(context.TODO(), newSession{Token: token, UserID: userID, CreationTime: time.Now()})
+		_, err = collVerifySession.InsertOne(ctx, newSession{Token: token, UserID: userID, CreationTime: time.Now()})
 		if err != nil {
 			return sessionPair{}, err
 		}
@@ -47,7 +49,9 @@ func createSession(userID string, collSession, collVerifySession *mongo.Collecti
 	} else {
 		// add session to the session DB
 		// TODO: delete the last session if 5 is reached
-		_, err = collSession.InsertOne(context.TODO(), newSession{Token: token, UserID: userID, CreationTime: time.Now()})
+		ctx,cancel := context.WithTimeout(context.Background(), time.Millisecond * 20)
+		defer cancel()
+		_, err = collSession.InsertOne(ctx, newSession{Token: token, UserID: userID, CreationTime: time.Now()})
 	}
 
 	if err != nil {
@@ -63,10 +67,12 @@ func sessionValid(uid, token *string, collVerifySession, collSession *mongo.Coll
 
 	// search for the session
 	// TODO: limit to 50ms
+	ctx,cancel := context.WithTimeout(context.Background(), time.Millisecond * 50)
+	defer cancel()
 	if verify {
-		sessionDataRaw = collVerifySession.FindOne(context.TODO(), bson.D{{Key: "uid", Value: uid}, {Key: "token", Value: token}})
+		sessionDataRaw = collVerifySession.FindOne(ctx, bson.D{{Key: "uid", Value: uid}, {Key: "token", Value: token}})
 	} else {
-		sessionDataRaw = collSession.FindOne(context.TODO(), bson.D{{Key: "uid", Value: uid}, {Key: "token", Value: token}})
+		sessionDataRaw = collSession.FindOne(ctx, bson.D{{Key: "uid", Value: uid}, {Key: "token", Value: token}})
 	}
 
 	// check error

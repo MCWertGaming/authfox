@@ -160,16 +160,20 @@ func checkUserExists(name, email string, collVerify, collProfiles *mongo.Collect
 	// count users with the given name
 	// TODO: Stop after the first one
 	// TODO: limit duration to 50ms
-	count, err := collVerify.CountDocuments(context.TODO(), bson.D{{Key: "name_static", Value: strings.ToLower(name)}})
+	ctx,cancel := context.WithTimeout(context.Background(), time.Millisecond * 50)
+	defer cancel()
+	count, err := collVerify.CountDocuments(ctx, bson.D{{Key: "name_static", Value: strings.ToLower(name)}})
 	if err != nil {
 		return true, err
 	}
 	if count != 0 {
 		return true, ErrReceivedUserThatExists
 	}
+	ctx,cancel = context.WithTimeout(context.Background(), time.Millisecond * 50)
+	defer cancel()
 	// TODO: Stop after the first was found
 	// TODO: Limit to 50ms
-	count, err = collProfiles.CountDocuments(context.TODO(), bson.D{{Key: "name_static", Value: strings.ToLower(name)}})
+	count, err = collProfiles.CountDocuments(ctx, bson.D{{Key: "name_static", Value: strings.ToLower(name)}})
 	if err != nil {
 		return true, err
 	}
@@ -180,7 +184,9 @@ func checkUserExists(name, email string, collVerify, collProfiles *mongo.Collect
 	// count users with the given email
 	// TODO: Stop after the first one
 	// TODO: limit duration to 50ms
-	count, err = collVerify.CountDocuments(context.TODO(), bson.D{{Key: "email", Value: strings.ToLower(email)}})
+	ctx,cancel = context.WithTimeout(context.Background(), time.Millisecond * 50)
+	defer cancel()
+	count, err = collVerify.CountDocuments(ctx, bson.D{{Key: "email", Value: strings.ToLower(email)}})
 	if err != nil {
 		return true, err
 	}
@@ -189,7 +195,9 @@ func checkUserExists(name, email string, collVerify, collProfiles *mongo.Collect
 	}
 	// TODO: Stop after the first was found
 	// TODO: Limit to 50ms
-	count, err = collProfiles.CountDocuments(context.TODO(), bson.D{{Key: "email", Value: strings.ToLower(email)}})
+	ctx,cancel = context.WithTimeout(context.Background(), time.Millisecond * 50)
+	defer cancel()
+	count, err = collProfiles.CountDocuments(ctx, bson.D{{Key: "email", Value: strings.ToLower(email)}})
 	if err != nil {
 		return true, err
 	}
