@@ -3,6 +3,7 @@ package endpoints
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/PurotoApp/authfox/internal/logHelper"
 	"github.com/PurotoApp/authfox/internal/security"
@@ -50,7 +51,9 @@ func accountDeletion(collVerifySession, collSession, collUser, collProfile *mong
 
 		// validate password
 		// get the data we need
-		userData := collUser.FindOne(context.TODO(), bson.D{{Key: "uid", Value: sendDataStruct.UserID}})
+		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*50)
+		userData := collUser.FindOne(ctx, bson.D{{Key: "uid", Value: sendDataStruct.UserID}})
+		cancel()
 		if userData.Err() != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			logHelper.LogError("authfox", userData.Err())
@@ -77,21 +80,27 @@ func accountDeletion(collVerifySession, collSession, collUser, collProfile *mong
 		}
 
 		// remove sessions
-		_, err = collSession.DeleteMany(context.TODO(), bson.D{{Key: "uid", Value: sendDataStruct.UserID}})
+		ctx, cancel = context.WithTimeout(context.Background(), time.Millisecond*50)
+		_, err = collSession.DeleteMany(ctx, bson.D{{Key: "uid", Value: sendDataStruct.UserID}})
+		cancel()
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			logHelper.LogEvent("authfox", "Invalid password received")
 			return
 		}
 		// remove user
-		_, err = collUser.DeleteOne(context.TODO(), bson.D{{Key: "uid", Value: sendDataStruct.UserID}})
+		ctx, cancel = context.WithTimeout(context.Background(), time.Millisecond*50)
+		_, err = collUser.DeleteOne(ctx, bson.D{{Key: "uid", Value: sendDataStruct.UserID}})
+		cancel()
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			logHelper.LogEvent("authfox", "Invalid password received")
 			return
 		}
 		// remove profile
-		_, err = collProfile.DeleteOne(context.TODO(), bson.D{{Key: "uid", Value: sendDataStruct.UserID}})
+		ctx, cancel = context.WithTimeout(context.Background(), time.Millisecond*50)
+		_, err = collProfile.DeleteOne(ctx, bson.D{{Key: "uid", Value: sendDataStruct.UserID}})
+		cancel()
 		if err != nil {
 			c.AbortWithStatus(http.StatusUnauthorized)
 			logHelper.LogEvent("authfox", "Invalid password received")

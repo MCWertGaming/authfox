@@ -1,0 +1,221 @@
+openapi: 3.0.0
+info:
+  title: Authfox
+  description: |
+    The authentication and session server of Puroto.
+  version: 0.0.1
+servers:
+- url: https://api.puroto.net
+  description: The official Puroto API server
+paths:
+  /v1/user:
+    post:
+      summary: register new user
+      description: Registers a new user and returns a verify session
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_name:
+                  type: string
+                  description: The user's name with prefered capitalization
+                email:
+                  type: string
+                  description: The user's email address
+                password:
+                  type: string
+                  description: The user's password
+      responses:
+        "202":
+          description: Registration was successfull
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  uid:
+                    type: string
+                    format: UUID
+                    description: The user's ID
+                  token:
+                    type: string
+                    format: base64
+                    description: |
+                      A session token that is only valid to verify the user's
+                      email address
+        "400":
+          description: Received invalid request header or json data
+        "500":
+          description: Internal server error
+    patch:
+      summary: Update password
+      description: Update the given user's password
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                uid:
+                  type: string
+                  format: UUID
+                  description: The user's ID
+                token:
+                  type: string
+                  format: base64
+                  description: | 
+                    The user's session ID. Verify sessions are not allowed.
+                password_old:
+                  type: string
+                  description: The old password of the account
+                password_new:
+                  type: string
+                  description: The new password yo update to
+      responses:
+        "202":
+          description: The password was updated successfully
+        "400":
+          description: Received invalid request header or json data
+        "401":
+          description: The session or password is invalid
+        "500":
+          description: Internal server error
+  /v1/user/delete:  
+    post:
+      summary: delete user
+      description: Delete a given user's account
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                uid:
+                  type: string
+                  format: UUID
+                  description: The user's ID
+                token:
+                  type: string
+                  format: base64
+                  description: |
+                    The user's session token. Verify sessions are not allowed!
+                password:
+                  type: string
+                  description: The user's account password
+      responses:
+        "202":
+          description: Account deleted successfull
+        "400":
+          description: Received invalid request header or json data
+        "401":
+          description: The session or password is invalid
+        "500":
+          description: Internal server error
+  /v1/user/login:
+    post:
+      summary: account login
+      description: Login a user with their username or email and password.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                login:
+                  type: string
+                  description: Username or email of the account
+                password:
+                  type: string
+                  description: Account password
+      responses:
+        "202":
+          description: Login was successfull
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  uid:
+                    type: string
+                    format: UUID
+                    description: The user identifier
+                  token:
+                    type: string
+                    format: base64
+                    description: The session token
+                  verify_only:
+                    type: boolean
+                    description: |
+                      Indicates if the session can only be used for verifying
+                      the user's email address
+        "400":
+          description: Received invalid request header or json data
+        "401":
+          description: The user does not exist or wrong password
+        "500":
+          description: Internal server error
+  /v1/user/verify:
+    post:
+      summary: verify email address
+      description: Verify a given user's email address
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                uid:
+                  type: string
+                  format: UUID
+                  description: The user's ID
+                token:
+                  type: string
+                  format: base64
+                  description: |
+                    The session token. Only verify tokens are accepted
+                verify_code:
+                  type: string
+                  format: base64
+                  description: |
+                    Verification code that was send to the user's email address
+      responses:
+        "202":
+          description: Email verified successfully
+        "400":
+          description: Received invalid request header or json data
+        "401":
+          description: |
+            The session does not exist or the session or token is invalid
+        "500":
+          description: Internal server error
+  /v1/user/validate:
+    post:
+      summary: validate session
+      description: Check whether a session is valid or not
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                uid:
+                  type: string
+                  format: UUID
+                  description: The user's ID
+                token:
+                  type: string
+                  format: base64
+                  description: |
+                    The user's session token. Verify sessions are not allowed!
+      responses:
+        "200":
+          description: The session is valid
+        "400":
+          description: Received invalid header or json data
+        "401":
+          description: The session is invalid
+        "500":
+          description: Internal server error
+          

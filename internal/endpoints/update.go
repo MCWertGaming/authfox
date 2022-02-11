@@ -3,6 +3,7 @@ package endpoints
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/PurotoApp/authfox/internal/logHelper"
 	"github.com/PurotoApp/authfox/internal/security"
@@ -55,7 +56,9 @@ func updatePassword(collVerifySession, collSession, collUser *mongo.Collection) 
 
 		// validate old password
 		// get the data we need
-		userData := collUser.FindOne(context.TODO(), bson.D{{Key: "uid", Value: sendDataStruct.UserID}})
+		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*50)
+		userData := collUser.FindOne(ctx, bson.D{{Key: "uid", Value: sendDataStruct.UserID}})
+		cancel()
 		if userData.Err() != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			logHelper.LogError("authfox", userData.Err())
@@ -90,7 +93,9 @@ func updatePassword(collVerifySession, collSession, collUser *mongo.Collection) 
 			return
 		}
 		// store into DB
-		_, err = collUser.UpdateOne(context.TODO(), bson.D{{Key: "uid", Value: sendDataStruct.UserID}}, bson.D{{Key: "$set", Value: bson.D{{Key: "password", Value: passwordLocal.Password}}}}) // &passwordLocal)
+		ctx, cancel = context.WithTimeout(context.Background(), time.Millisecond*50)
+		_, err = collUser.UpdateOne(ctx, bson.D{{Key: "uid", Value: sendDataStruct.UserID}}, bson.D{{Key: "$set", Value: bson.D{{Key: "password", Value: passwordLocal.Password}}}}) // &passwordLocal)
+		cancel()
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			logHelper.LogError("authfox", err)
