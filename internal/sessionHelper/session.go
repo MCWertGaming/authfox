@@ -21,7 +21,7 @@ type newSession struct {
 type sessionPair struct {
 	UserID     string `json:"uid"`
 	Token      string `json:"token"`
-	VerifyOnly bool   `json:"verify_only"`
+	VerifyOnly bool   `json:"verify_only,omitempty"`
 }
 
 func CreateSession(userID string, collSession, collVerifySession *mongo.Collection, verify bool) (sessionPair, error) {
