@@ -11,6 +11,7 @@ import (
 	"github.com/PurotoApp/authfox/internal/security"
 	"github.com/PurotoApp/authfox/internal/sessionHelper"
 	"github.com/PurotoApp/authfox/internal/stringHelper"
+	"github.com/google/uuid"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
@@ -109,11 +110,8 @@ func registerUser(collUsers, collVerify, collSession, collVerifySession, collPro
 			logHelper.LogError("authfox", err)
 		}
 		// create user ID
-		if userData.UserID, err = sessionHelper.GenerateUserID(collUsers, collVerify); err != nil {
-			c.AbortWithStatus(http.StatusInternalServerError)
-			logHelper.LogError("authfox", err)
-			return
-		}
+		userData.UserID = uuid.New().String()
+
 		// store into DB
 		_, err = collVerify.InsertOne(context.TODO(), userData)
 		if err != nil {
