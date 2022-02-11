@@ -12,7 +12,7 @@ import (
 )
 
 // generates a secure session token
-func generateSessionToken(collSession *mongo.Collection) (string, error) {
+func generateSessionToken(collSession, collVerifySession *mongo.Collection) (string, error) {
 	var token string
 	var err error
 	var count int64
@@ -26,13 +26,18 @@ func generateSessionToken(collSession *mongo.Collection) (string, error) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*100)
 		count, err = collSession.CountDocuments(ctx, bson.D{{Key: "token", Value: token}}, options.Count().SetLimit(1))
 		cancel()
-		// TODO: Also search the verify session
 		if err != nil {
 			return "", err
 		}
 		// doesn't exist, so continue
 		if count == 0 {
-			return token, nil
+			// check if it exists as verify session
+			ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*100)
+			count, err = collVerifySession.CountDocuments(ctx, bson.D{{Key: "token", Value: token}}, options.Count().SetLimit(1))
+			cancel()
+			if count == 0 {
+				return token, nil
+			}
 		}
 	}
 	return "", errors.New("generateSessionToken(): failed to generate token after 20 tries")

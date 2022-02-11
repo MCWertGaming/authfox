@@ -26,7 +26,7 @@ type sessionPair struct {
 
 func CreateSession(userID string, collSession, collVerifySession *mongo.Collection, verify bool) (sessionPair, error) {
 	// genrate new token
-	token, err := generateSessionToken(collSession)
+	token, err := generateSessionToken(collSession, collVerifySession)
 	if err != nil {
 		return sessionPair{}, err
 	}
