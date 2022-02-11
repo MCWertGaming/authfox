@@ -113,7 +113,9 @@ func registerUser(collUsers, collVerify, collSession, collVerifySession, collPro
 		userData.UserID = uuid.New().String()
 
 		// store into DB
-		_, err = collVerify.InsertOne(context.TODO(), userData)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*50)
+		_, err = collVerify.InsertOne(ctx, userData)
+		cancel()
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			logHelper.LogError("authfox", err)
@@ -160,17 +162,18 @@ func checkSendUserProfile(profile *sendUserProfile) bool {
 // returns true if a user exists with the given name
 func checkUserExists(name, email string, collVerify, collProfiles *mongo.Collection) (bool, error) {
 	// count users with the given name
-	// TODO: limit duration to 50ms
-	count, err := collVerify.CountDocuments(context.TODO(), bson.M{"name_static": strings.ToLower(name)}, options.Count().SetLimit(1))
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*50)
+	count, err := collVerify.CountDocuments(ctx, bson.M{"name_static": strings.ToLower(name)}, options.Count().SetLimit(1))
+	cancel()
 	if err != nil {
 		return true, err
 	}
 	if count != 0 {
 		return true, ErrReceivedUserThatExists
 	}
-	// TODO: Stop after the first was found
-	// TODO: Limit to 50ms
-	count, err = collProfiles.CountDocuments(context.TODO(), bson.M{"name_static": strings.ToLower(name)}, options.Count().SetLimit(1))
+	ctx, cancel = context.WithTimeout(context.Background(), time.Millisecond*50)
+	count, err = collProfiles.CountDocuments(ctx, bson.M{"name_static": strings.ToLower(name)}, options.Count().SetLimit(1))
+	cancel()
 	if err != nil {
 		return true, err
 	}
@@ -179,16 +182,18 @@ func checkUserExists(name, email string, collVerify, collProfiles *mongo.Collect
 	}
 
 	// count users with the given email
-	// TODO: limit duration to 50ms
-	count, err = collVerify.CountDocuments(context.TODO(), bson.D{{Key: "email", Value: strings.ToLower(email)}}, options.Count().SetLimit(1))
+	ctx, cancel = context.WithTimeout(context.Background(), time.Millisecond*50)
+	count, err = collVerify.CountDocuments(ctx, bson.D{{Key: "email", Value: strings.ToLower(email)}}, options.Count().SetLimit(1))
+	cancel()
 	if err != nil {
 		return true, err
 	}
 	if count != 0 {
 		return true, ErrReceivedUserThatExists
 	}
-	// TODO: Limit to 50ms
-	count, err = collProfiles.CountDocuments(context.TODO(), bson.D{{Key: "email", Value: strings.ToLower(email)}}, options.Count().SetLimit(1))
+	ctx, cancel = context.WithTimeout(context.Background(), time.Millisecond*50)
+	count, err = collProfiles.CountDocuments(ctx, bson.D{{Key: "email", Value: strings.ToLower(email)}}, options.Count().SetLimit(1))
+	cancel()
 	if err != nil {
 		return true, err
 	}

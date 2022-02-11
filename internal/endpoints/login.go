@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/PurotoApp/authfox/internal/logHelper"
 	"github.com/PurotoApp/authfox/internal/security"
@@ -124,11 +125,15 @@ func findUserData(collUser, collVerify, collProfiles *mongo.Collection, login st
 	}
 
 	// find user profile
-	userProfile := collProfiles.FindOne(context.TODO(), bson.D{{Key: loginType, Value: strings.ToLower(login)}})
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*50)
+	userProfile := collProfiles.FindOne(ctx, bson.D{{Key: loginType, Value: strings.ToLower(login)}})
+	cancel()
 	// check if a profile was found
 	if userProfile.Err() == mongo.ErrNoDocuments {
 		// user was not found in user DB, check the verify DB
-		userData = collVerify.FindOne(context.TODO(), bson.D{{Key: loginType, Value: strings.ToLower(login)}})
+		ctx, cancel = context.WithTimeout(context.Background(), time.Millisecond*50)
+		userData = collVerify.FindOne(ctx, bson.D{{Key: loginType, Value: strings.ToLower(login)}})
+		cancel()
 		// check if a user was found this time
 		if userData.Err() == mongo.ErrNoDocuments {
 			// user does not excist
@@ -147,7 +152,9 @@ func findUserData(collUser, collVerify, collProfiles *mongo.Collection, login st
 		return &mongo.SingleResult{}, true, err
 	}
 	// get the data we need
-	userData = collUser.FindOne(context.TODO(), bson.D{{Key: "uid", Value: userIDStruct.UserID}})
+	ctx, cancel = context.WithTimeout(context.Background(), time.Millisecond*50)
+	userData = collUser.FindOne(ctx, bson.D{{Key: "uid", Value: userIDStruct.UserID}})
+	cancel()
 	if userData.Err() == mongo.ErrNoDocuments {
 		// user does not excist
 		return &mongo.SingleResult{}, true, ErrAccountNotExisting

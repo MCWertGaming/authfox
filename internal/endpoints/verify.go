@@ -76,8 +76,9 @@ func verifyUser(collVerifySession, collSession, collVerify, collProfiles, collUs
 		}
 
 		// retrieve user data
-		verifyUserRaw := collVerify.FindOne(context.TODO(), bson.D{{Key: "uid", Value: sendVerifyStruct.UserID}})
-
+		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*50)
+		verifyUserRaw := collVerify.FindOne(ctx, bson.D{{Key: "uid", Value: sendVerifyStruct.UserID}})
+		cancel()
 		if verifyUserRaw.Err() != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			logHelper.LogError("authfox", verifyUserRaw.Err())
@@ -109,7 +110,9 @@ func verifyUser(collVerifySession, collSession, collVerify, collProfiles, collUs
 		// Giving user the beta tester badge
 		saveUserProfile.BadgeBetaTester = true
 		// save into DB
-		_, err = collProfiles.InsertOne(context.TODO(), saveUserProfile)
+		ctx, cancel = context.WithTimeout(context.Background(), time.Millisecond*50)
+		_, err = collProfiles.InsertOne(ctx, saveUserProfile)
+		cancel()
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			logHelper.LogError("authfox", err)
@@ -123,7 +126,9 @@ func verifyUser(collVerifySession, collSession, collVerify, collProfiles, collUs
 		saveUserDataStruct.RegisterIP = localVerifyUser.RegisterIP
 		saveUserDataStruct.RegisterTime = localVerifyUser.RegisterTime
 		// save into DB
-		_, err = collUsers.InsertOne(context.TODO(), saveUserDataStruct)
+		ctx, cancel = context.WithTimeout(context.Background(), time.Millisecond*50)
+		_, err = collUsers.InsertOne(ctx, saveUserDataStruct)
+		cancel()
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			logHelper.LogError("authfox", err)
@@ -131,14 +136,18 @@ func verifyUser(collVerifySession, collSession, collVerify, collProfiles, collUs
 		}
 
 		// delete old data
-		_, err = collVerify.DeleteOne(context.TODO(), bson.D{{Key: "uid", Value: sendVerifyStruct.UserID}})
+		ctx, cancel = context.WithTimeout(context.Background(), time.Millisecond*50)
+		_, err = collVerify.DeleteOne(ctx, bson.D{{Key: "uid", Value: sendVerifyStruct.UserID}})
+		cancel()
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			logHelper.LogError("authfox", verifyUserRaw.Err())
 			return
 		}
 		// delete old session
-		_, err = collVerifySession.DeleteOne(context.TODO(), bson.D{{Key: "uid", Value: sendVerifyStruct.UserID}})
+		ctx, cancel = context.WithTimeout(context.Background(), time.Millisecond*50)
+		_, err = collVerifySession.DeleteOne(ctx, bson.D{{Key: "uid", Value: sendVerifyStruct.UserID}})
+		cancel()
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			logHelper.LogError("authfox", verifyUserRaw.Err())

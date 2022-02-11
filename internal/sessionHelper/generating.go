@@ -3,6 +3,7 @@ package sessionHelper
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/PurotoApp/authfox/internal/security"
 	"go.mongodb.org/mongo-driver/bson"
@@ -22,8 +23,9 @@ func generateSessionToken(collSession *mongo.Collection) (string, error) {
 			return "", err
 		}
 		// check if the token already exists
-		// TODO: Set timeout to 100ms
-		count, err = collSession.CountDocuments(context.TODO(), bson.D{{Key: "token", Value: token}}, options.Count().SetLimit(1))
+		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*100)
+		count, err = collSession.CountDocuments(ctx, bson.D{{Key: "token", Value: token}}, options.Count().SetLimit(1))
+		cancel()
 		// TODO: Also search the verify session
 		if err != nil {
 			return "", err

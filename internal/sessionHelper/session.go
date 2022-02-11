@@ -34,33 +34,42 @@ func CreateSession(userID string, collSession, collVerifySession *mongo.Collecti
 	// save session
 	if verify {
 		// check and remove session
-		_, err := collVerifySession.DeleteOne(context.TODO(), bson.M{"uid": userID})
+		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*50)
+		_, err := collVerifySession.DeleteOne(ctx, bson.M{"uid": userID})
+		cancel()
 		if err != nil {
 			return sessionPair{}, err
 		}
 
 		// add session to the verify DB
-		_, err = collVerifySession.InsertOne(context.TODO(), newSession{Token: token, UserID: userID, CreationTime: time.Now()})
+		ctx, cancel = context.WithTimeout(context.Background(), time.Millisecond*50)
+		_, err = collVerifySession.InsertOne(ctx, newSession{Token: token, UserID: userID, CreationTime: time.Now()})
+		cancel()
 		if err != nil {
 			return sessionPair{}, err
 		}
 	} else {
 		// check how many sessions are open
-		// TODO: limit duration to 50ms
-		count, err := collSession.CountDocuments(context.TODO(), bson.M{"uid": userID}, options.Count().SetLimit(5))
+		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*50)
+		count, err := collSession.CountDocuments(ctx, bson.M{"uid": userID}, options.Count().SetLimit(5))
+		cancel()
 		if err != nil {
 			return sessionPair{}, err
 		}
 		if count > 4 {
 			// the user has 5 or more sessions, let's remove one
-			_, err := collSession.DeleteOne(context.TODO(), bson.M{"uid": userID})
+			ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*50)
+			_, err := collSession.DeleteOne(ctx, bson.M{"uid": userID})
+			cancel()
 			if err != nil {
 				return sessionPair{}, err
 			}
 		}
 
 		// add session to the session DB
-		_, err = collSession.InsertOne(context.TODO(), newSession{Token: token, UserID: userID, CreationTime: time.Now()})
+		ctx, cancel = context.WithTimeout(context.Background(), time.Millisecond*50)
+		_, err = collSession.InsertOne(ctx, newSession{Token: token, UserID: userID, CreationTime: time.Now()})
+		cancel()
 		if err != nil {
 			return sessionPair{}, err
 		}
@@ -73,11 +82,14 @@ func SessionValid(uid, token *string, collVerifySession, collSession *mongo.Coll
 	var sessionDataRaw *mongo.SingleResult
 
 	// search for the session
-	// TODO: limit to 50ms
 	if verify {
-		sessionDataRaw = collVerifySession.FindOne(context.TODO(), bson.D{{Key: "uid", Value: uid}, {Key: "token", Value: token}})
+		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*50)
+		sessionDataRaw = collVerifySession.FindOne(ctx, bson.D{{Key: "uid", Value: uid}, {Key: "token", Value: token}})
+		cancel()
 	} else {
-		sessionDataRaw = collSession.FindOne(context.TODO(), bson.D{{Key: "uid", Value: uid}, {Key: "token", Value: token}})
+		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*50)
+		sessionDataRaw = collSession.FindOne(ctx, bson.D{{Key: "uid", Value: uid}, {Key: "token", Value: token}})
+		cancel()
 	}
 
 	// check error

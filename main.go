@@ -23,9 +23,7 @@ func main() {
 	logHelper.ErrorFatal("MongoDB", mongoHelper.TestDBConnection(client))
 	// close connection on program exit
 	// TODO: execute on CTRL+C
-	defer func() {
-		logHelper.ErrorFatal("MongoDB", mongoHelper.DisconnectDB(client))
-	}()
+	defer logHelper.ErrorFatal("MongoDB", mongoHelper.DisconnectDB(client))
 
 	// create router
 	router := gin.Default()
