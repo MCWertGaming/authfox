@@ -2,32 +2,40 @@ package logHelper
 
 import (
 	"log"
+	"os"
 	"runtime"
-
-	"github.com/fatih/color"
 )
 
-func ErrorFatal(name string, err error) {
-	if err != nil {
-		clr := color.New(color.FgRed, color.Bold).SprintFunc()
-		_, filename, line, _ := runtime.Caller(1)
-		log.Fatalf("[%v] [%v] [%v:%v] %v", name, clr("FATAL"), filename, line, clr(err.Error()))
+func redBoldColor(message string) string {
+	if _, exists := os.LookupEnv("DISABLE_COLOR"); exists {
+		return message
+	} else {
+		return "\033[31m\033[1m" + message + "\033[m"
 	}
 }
-
-// TODO: make pretty
+func boldColor(message string) string {
+	if _, exists := os.LookupEnv("DISABLE_COLOR"); exists {
+		return message
+	} else {
+		return "\033[1m" + message + "\033[m"
+	}
+}
+func ErrorFatal(name string, err error) {
+	if err != nil {
+		_, filename, line, _ := runtime.Caller(1)
+		log.Fatalf("[%v] [%v] [%v:%v] %v", name, redBoldColor("FATAL"), filename, line, redBoldColor(err.Error()))
+	}
+}
 func ErrorPanic(err error) {
 	if err != nil {
 		panic(err)
 	}
 }
 func LogEvent(name string, message string) {
-	clr := color.New(color.Bold).SprintFunc()
 	_, filename, line, _ := runtime.Caller(1)
-	log.Printf("[%v] [LOG] [%v:%v] %v", name, filename, line, clr(message))
+	log.Printf("[%v] [%v] [%v:%v] %v", name, boldColor("LOG"), filename, line, boldColor(message))
 }
 func LogError(name string, err error) {
-	clr := color.New(color.FgRed).SprintFunc()
 	_, filename, line, _ := runtime.Caller(1)
-	log.Printf("[%v] [%v] [%v:%v] %v", name, clr("ERROR"), filename, line, clr(err.Error()))
+	log.Printf("[%v] [%v] [%v:%v] %v", name, redBoldColor("ERROR"), filename, line, redBoldColor(err.Error()))
 }
