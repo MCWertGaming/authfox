@@ -7,12 +7,12 @@ import (
 )
 
 func SetRoutes(router *gin.Engine, collUsers, collVerify, collSession, collVerifySession, collProfiles *mongo.Collection) {
-	router.POST("/v1/register", registerUser(collUsers, collVerify, collSession, collVerifySession, collProfiles))
-	router.POST("/v1/login", loginUser(collUsers, collSession, collVerifySession, collVerify, collProfiles))
-	router.POST("/v1/verify", verifyUser(collVerifySession, collSession, collVerify, collProfiles, collUsers))
-	router.POST("/v1/validate", validateSession(collVerifySession, collSession))
-	router.POST("/v1/update", updatePassword(collVerifySession, collSession, collUsers))
-	router.POST("/v1/remove", accountDeletion(collVerifySession, collSession, collUsers, collProfiles))
+	router.POST("/v1/user", registerUser(collUsers, collVerify, collSession, collVerifySession, collProfiles))
+	router.POST("/v1/user/login", loginUser(collUsers, collSession, collVerifySession, collVerify, collProfiles))
+	router.POST("/v1/user/verify", verifyUser(collVerifySession, collSession, collVerify, collProfiles, collUsers))
+	router.POST("/v1/user/validate", validateSession(collVerifySession, collSession))
+	router.PATCH("/v1/user", updatePassword(collVerifySession, collSession, collUsers))
+	router.POST("/v1/user/delete", accountDeletion(collVerifySession, collSession, collUsers, collProfiles))
 	// swagger docs
 	router.Static("/swagger", "swagger/")
 	// user redirects
