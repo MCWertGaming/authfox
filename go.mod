@@ -3,10 +3,11 @@ module github.com/PurotoApp/authfox
 go 1.17
 
 require (
+	github.com/PurotoApp/libpuroto v0.0.0-20220214201929-ebdb03a268de
 	github.com/gin-gonic/gin v1.7.7
 	github.com/google/uuid v1.3.0
 	go.mongodb.org/mongo-driver v1.8.3
-	golang.org/x/crypto v0.0.0-20220210151621-f4118a5b28e2
+	golang.org/x/crypto v0.0.0-20220214200702-86341886e292
 )
 
 require (
