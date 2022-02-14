@@ -1,7 +1,7 @@
 package endpoints
 
 import (
-	"github.com/PurotoApp/authfox/internal/ginHelper"
+	"github.com/PurotoApp/libpuroto/ginHelper"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/mongo"
 )

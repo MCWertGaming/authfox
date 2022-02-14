@@ -3,8 +3,8 @@ package endpoints
 import (
 	"net/http"
 
-	"github.com/PurotoApp/authfox/internal/logHelper"
 	"github.com/PurotoApp/authfox/internal/sessionHelper"
+	"github.com/PurotoApp/libpuroto/logHelper"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/mongo"
 )

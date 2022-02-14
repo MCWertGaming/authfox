@@ -7,10 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/PurotoApp/authfox/internal/logHelper"
 	"github.com/PurotoApp/authfox/internal/security"
 	"github.com/PurotoApp/authfox/internal/sessionHelper"
-	"github.com/PurotoApp/authfox/internal/stringHelper"
+	"github.com/PurotoApp/libpuroto/stringHelper"
+
+	"github.com/PurotoApp/libpuroto/logHelper"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
