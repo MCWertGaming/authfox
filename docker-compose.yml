@@ -13,7 +13,14 @@ services:
   pgadmin:
     image: dpage/pgadmin4:latest
     environment:
-      - PGADMIN_DEFAULT_EMAIL=user@test.local
+      - PGADMIN_DEFAULT_EMAIL=user
       - PGADMIN_DEFAULT_PASSWORD=pass
     ports:
       - 80:80
+  redis:
+    image: redis:latest
+    restart: unless-stopped
+    ports:
+      - 6379:6379
+
+    
