@@ -23,9 +23,6 @@ type sendLogin struct {
 	LoginName string `json:"login"`
 	Password  string `json:"password"`
 }
-type userID struct {
-	UserID string `bson:"uid"`
-}
 
 func loginUser(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
