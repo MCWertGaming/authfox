@@ -30,14 +30,14 @@ type usedHashParams struct {
 	hash        []byte
 }
 
-func CreateHash(password string) (string, error) {
+func CreateHash(password *string) (string, error) {
 	// create a random salt
 	salt, err := randomBytes(hashSaltLength)
 	if err != nil {
 		return "", err
 	}
 	// create encryption key
-	key := argon2.IDKey([]byte(password), []byte(salt), hashIterations, hashMemory, hashParallelism, hashKeyLength)
+	key := argon2.IDKey([]byte(*password), []byte(salt), hashIterations, hashMemory, hashParallelism, hashKeyLength)
 
 	// encode values as string
 	saltEncoded := base64.RawStdEncoding.EncodeToString(salt)
@@ -45,9 +45,9 @@ func CreateHash(password string) (string, error) {
 
 	return fmt.Sprintf("$argon2id$v=%d$m=%d,t=%d,p=%d$%s$%s", argon2.Version, hashMemory, hashIterations, hashParallelism, saltEncoded, keyEncoded), nil
 }
-func decodeHash(encodedHash string) (params usedHashParams, err error) {
+func decodeHash(encodedHash *string) (params usedHashParams, err error) {
 	// split the hash into it's parameters
-	vals := strings.Split(encodedHash, "$")
+	vals := strings.Split(*encodedHash, "$")
 	if len(vals) != 6 {
 		return usedHashParams{}, errors.New("decodeHash(): Received invalid hash")
 	}
@@ -86,7 +86,7 @@ func decodeHash(encodedHash string) (params usedHashParams, err error) {
 	return params, nil
 }
 
-func ComparePasswordAndHash(password, encodedHash string) (match bool, err error) {
+func ComparePasswordAndHash(password, encodedHash *string) (match bool, err error) {
 	// decode the given hash
 	params, err := decodeHash(encodedHash)
 	if err != nil {
@@ -94,7 +94,7 @@ func ComparePasswordAndHash(password, encodedHash string) (match bool, err error
 	}
 
 	// hash the password with the same parameters as the given hash
-	otherHash := argon2.IDKey([]byte(password), params.Salt, params.Iterations, params.Memory, params.Parallelism, params.KeyLength)
+	otherHash := argon2.IDKey([]byte(*password), params.Salt, params.Iterations, params.Memory, params.Parallelism, params.KeyLength)
 
 	// securely compare both hashes
 	if subtle.ConstantTimeCompare(params.hash, otherHash) == 1 {

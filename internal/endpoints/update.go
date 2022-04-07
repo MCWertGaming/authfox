@@ -51,14 +51,14 @@ func updatePassword(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) g
 
 		// validate old password
 		// get the hashed password
-		localPass, err := findUserPassword(pg_conn, sendDataStruct.UserID)
+		localPass, err := findUserPassword(pg_conn, &sendDataStruct.UserID)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			logHelper.LogError("authfox", err)
 			return
 		}
 		// compare passwords
-		match, err := security.ComparePasswordAndHash(sendDataStruct.PasswordOld, localPass)
+		match, err := security.ComparePasswordAndHash(&sendDataStruct.PasswordOld, &localPass)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			logHelper.LogError("authfox", err)
@@ -72,7 +72,7 @@ func updatePassword(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) g
 
 		// update password
 		// TODO recycle hash
-		newPassHash, err := security.CreateHash(sendDataStruct.PasswordNew)
+		newPassHash, err := security.CreateHash(&sendDataStruct.PasswordNew)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			logHelper.LogError("authfox", err)
@@ -84,7 +84,7 @@ func updatePassword(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) g
 		c.Status(http.StatusAccepted)
 	}
 }
-func findUserPassword(pg_conn *gorm.DB, userID string) (string, error) {
+func findUserPassword(pg_conn *gorm.DB, userID *string) (string, error) {
 	var localUser User
 	res := pg_conn.Where("user_id = ?", userID).Take(&localUser)
 	if res.Error != nil {

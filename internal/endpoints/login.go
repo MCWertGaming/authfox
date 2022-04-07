@@ -41,13 +41,13 @@ func loginUser(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) gin.Ha
 		}
 
 		// check the data for validity
-		if !checkLoginData(sendLoginStruct) {
+		if !checkLoginData(&sendLoginStruct) {
 			c.AbortWithStatus(http.StatusBadRequest)
 			logHelper.LogEvent("authfox", "loginUser(): Invalid data recieved")
 			return
 		}
 		// find user
-		localPassword, localUserID, verify, err := findUserData(pg_conn, sendLoginStruct.LoginName)
+		localPassword, localUserID, verify, err := findUserData(pg_conn, &sendLoginStruct.LoginName)
 		if err == ErrAccountNotExisting {
 			// account does not exist
 			c.AbortWithStatus(http.StatusUnauthorized)
@@ -60,7 +60,7 @@ func loginUser(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) gin.Ha
 		}
 
 		// check if the password matches the stored one
-		match, err := security.ComparePasswordAndHash(sendLoginStruct.Password, localPassword)
+		match, err := security.ComparePasswordAndHash(&sendLoginStruct.Password, &localPassword)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			logHelper.LogError("authfox", err)
@@ -72,7 +72,7 @@ func loginUser(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) gin.Ha
 		}
 
 		// create session
-		session, err := sessionHelper.CreateSession(localUserID, redisVerify, redisSession, verify)
+		session, err := sessionHelper.CreateSession(&localUserID, redisVerify, redisSession, verify)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			logHelper.LogError("authfox", err)
@@ -85,7 +85,7 @@ func loginUser(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) gin.Ha
 }
 
 // returns false if the login struct includes valid data
-func checkLoginData(loginData sendLogin) bool {
+func checkLoginData(loginData *sendLogin) bool {
 	if loginData.LoginName == "" {
 		return false
 	}
@@ -95,18 +95,18 @@ func checkLoginData(loginData sendLogin) bool {
 	return true
 }
 
-func findUserData(pg_conn *gorm.DB, login string) (password, UserID string, verify bool, err error) {
+func findUserData(pg_conn *gorm.DB, login *string) (password, UserID string, verify bool, err error) {
 	// we'll send verify as true on failture as they are limited to a single use case
 
 	var localProfile Profile
 	var res *gorm.DB
 	// switch wether is an email or account name
-	if stringHelper.CheckEmail(strings.ToLower(login)) {
+	if stringHelper.CheckEmail(strings.ToLower(*login)) {
 		// get account by email
-		res = pg_conn.Where("email = ?", strings.ToLower(login)).Take(&localProfile)
+		res = pg_conn.Where("email = ?", strings.ToLower(*login)).Take(&localProfile)
 	} else {
 		// get account by user name
-		res = pg_conn.Where("name_static = ?", strings.ToLower(login)).Take(&localProfile)
+		res = pg_conn.Where("name_static = ?", strings.ToLower(*login)).Take(&localProfile)
 	}
 
 	if res.Error != nil && res.Error != gorm.ErrRecordNotFound {
@@ -119,12 +119,12 @@ func findUserData(pg_conn *gorm.DB, login string) (password, UserID string, veri
 		// searching for one in the verify table
 		var localVerify Verify
 		// switch search method
-		if stringHelper.CheckEmail(strings.ToLower(login)) {
+		if stringHelper.CheckEmail(strings.ToLower(*login)) {
 			// get account by email
-			res = pg_conn.Where("email = ?", strings.ToLower(login)).Take(&localVerify)
+			res = pg_conn.Where("email = ?", strings.ToLower(*login)).Take(&localVerify)
 		} else {
 			// get account by user name
-			res = pg_conn.Where("name_static = ?", strings.ToLower(login)).Take(&localVerify)
+			res = pg_conn.Where("name_static = ?", strings.ToLower(*login)).Take(&localVerify)
 		}
 
 		if res.Error != nil && res.Error != gorm.ErrRecordNotFound {

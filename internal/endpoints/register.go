@@ -72,7 +72,7 @@ func registerUser(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) gin
 		var userData Verify
 
 		// hash the password
-		hash, err := security.CreateHash(sendUserStruct.Password)
+		hash, err := security.CreateHash(&sendUserStruct.Password)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			logHelper.LogError("authfox", err)
@@ -104,7 +104,7 @@ func registerUser(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) gin
 		}
 
 		// create session
-		session, err := sessionHelper.CreateSession(userData.UserID, redisVerify, redisSession, true)
+		session, err := sessionHelper.CreateSession(&userData.UserID, redisVerify, redisSession, true)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			logHelper.LogError("authfox", err)

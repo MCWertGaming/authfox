@@ -16,7 +16,7 @@ type sessionPair struct {
 }
 
 // TODO: use string pointer for UID
-func CreateSession(userID string, redisVerify, redisSession *redis.Client, verify bool) (sessionPair, error) {
+func CreateSession(userID *string, redisVerify, redisSession *redis.Client, verify bool) (sessionPair, error) {
 	// session token
 	token, err := security.RandomString(512)
 	if err != nil {
@@ -28,49 +28,49 @@ func CreateSession(userID string, redisVerify, redisSession *redis.Client, verif
 		// so we'll just create a new secret and store it into redis
 		// verify session is valid for 2 days
 		// this will override the old session if neccessary
-		if redisVerify.Set(userID, token, time.Hour*48).Err() != nil {
+		if redisVerify.Set(*userID, token, time.Hour*48).Err() != nil {
 			return sessionPair{}, err
 		}
-		return sessionPair{UserID: userID, Token: token, VerifyOnly: verify}, nil
+		return sessionPair{UserID: *userID, Token: token, VerifyOnly: verify}, nil
 	} else {
 		// creating a user session, only 4 are allowed
 		// sessions are valid for 2 days
 		// because redis can only store one key, we'll append a number to the UID
 		// UID[session_number] : token
-		if count, err := redisSession.Exists(userID + "0").Result(); count == 0 {
+		if count, err := redisSession.Exists(*userID + "0").Result(); count == 0 {
 			// no sessions, creating one using this ID
-			redisSession.Set(userID+"0", token, time.Hour*24*7)
-			return sessionPair{Token: token, UserID: userID + "0", VerifyOnly: verify}, nil
+			redisSession.Set(*userID+"0", token, time.Hour*24*7)
+			return sessionPair{Token: token, UserID: *userID + "0", VerifyOnly: verify}, nil
 		} else if err != nil {
 			return sessionPair{}, err
-		} else if count, err := redisSession.Exists(userID + "1").Result(); count == 0 {
+		} else if count, err := redisSession.Exists(*userID + "1").Result(); count == 0 {
 			// no sessions, creating one using this ID
-			redisSession.Set(userID+"1", token, time.Hour*24*7)
-			return sessionPair{Token: token, UserID: userID + "1", VerifyOnly: verify}, nil
+			redisSession.Set(*userID+"1", token, time.Hour*24*7)
+			return sessionPair{Token: token, UserID: *userID + "1", VerifyOnly: verify}, nil
 		} else if err != nil {
 			return sessionPair{}, err
-		} else if count, err := redisSession.Exists(userID + "2").Result(); count == 0 {
+		} else if count, err := redisSession.Exists(*userID + "2").Result(); count == 0 {
 			// no sessions, creating one using this ID
-			redisSession.Set(userID+"2", token, time.Hour*24*7)
-			return sessionPair{Token: token, UserID: userID + "2", VerifyOnly: verify}, nil
+			redisSession.Set(*userID+"2", token, time.Hour*24*7)
+			return sessionPair{Token: token, UserID: *userID + "2", VerifyOnly: verify}, nil
 		} else if err != nil {
 			return sessionPair{}, err
-		} else if count, err := redisSession.Exists(userID + "3").Result(); count == 0 {
+		} else if count, err := redisSession.Exists(*userID + "3").Result(); count == 0 {
 			// no sessions, creating one using this ID
-			redisSession.Set(userID+"3", token, time.Hour*24*7)
-			return sessionPair{Token: token, UserID: userID + "3", VerifyOnly: verify}, nil
+			redisSession.Set(*userID+"3", token, time.Hour*24*7)
+			return sessionPair{Token: token, UserID: *userID + "3", VerifyOnly: verify}, nil
 		} else if err != nil {
 			return sessionPair{}, err
-		} else if count, err := redisSession.Exists(userID + "4").Result(); count == 0 {
+		} else if count, err := redisSession.Exists(*userID + "4").Result(); count == 0 {
 			// no sessions, creating one using this ID
-			redisSession.Set(userID+"4", token, time.Hour*24*7)
-			return sessionPair{Token: token, UserID: userID + "4", VerifyOnly: verify}, nil
+			redisSession.Set(*userID+"4", token, time.Hour*24*7)
+			return sessionPair{Token: token, UserID: *userID + "4", VerifyOnly: verify}, nil
 		} else if err != nil {
 			return sessionPair{}, err
 		} else {
 			// overwrite the first session since the session limit is reached
-			redisSession.Set(userID+"0", token, time.Hour*24*7)
-			return sessionPair{Token: token, UserID: userID + "0", VerifyOnly: verify}, nil
+			redisSession.Set(*userID+"0", token, time.Hour*24*7)
+			return sessionPair{Token: token, UserID: *userID + "0", VerifyOnly: verify}, nil
 		}
 	}
 }
