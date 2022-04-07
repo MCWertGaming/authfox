@@ -6,8 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/PurotoApp/authfox/internal/security"
-	"github.com/PurotoApp/authfox/internal/sessionHelper"
+	"github.com/PurotoApp/authfox/internal/helper"
 	"github.com/PurotoApp/libpuroto/logHelper"
 	"github.com/PurotoApp/libpuroto/stringHelper"
 	"github.com/gin-gonic/gin"
@@ -72,7 +71,7 @@ func registerUser(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) gin
 		var userData Verify
 
 		// hash the password
-		hash, err := security.CreateHash(&sendUserStruct.Password)
+		hash, err := helper.CreateHash(&sendUserStruct.Password)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			logHelper.LogError("authfox", err)
@@ -89,7 +88,7 @@ func registerUser(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) gin
 		userData.Email = strings.ToLower(sendUserStruct.Email)
 		userData.RegisterIP = c.ClientIP()
 		userData.RegisterTime = time.Now()
-		if userData.VerifyCode, err = security.RandomString(32); err != nil {
+		if userData.VerifyCode, err = helper.RandomString(32); err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			logHelper.LogError("authfox", err)
 		}
@@ -104,7 +103,7 @@ func registerUser(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) gin
 		}
 
 		// create session
-		session, err := sessionHelper.CreateSession(&userData.UserID, redisVerify, redisSession, true)
+		session, err := helper.CreateSession(&userData.UserID, redisVerify, redisSession, true)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			logHelper.LogError("authfox", err)

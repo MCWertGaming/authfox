@@ -1,4 +1,4 @@
-package redishelper
+package helper
 
 import (
 	"github.com/go-redis/redis"

@@ -5,14 +5,12 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/PurotoApp/authfox/internal/security"
-	"github.com/PurotoApp/authfox/internal/sessionHelper"
-	"github.com/go-redis/redis"
-	"gorm.io/gorm"
-
+	"github.com/PurotoApp/authfox/internal/helper"
 	"github.com/PurotoApp/libpuroto/logHelper"
 	"github.com/PurotoApp/libpuroto/stringHelper"
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis"
+	"gorm.io/gorm"
 )
 
 var (
@@ -60,7 +58,7 @@ func loginUser(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) gin.Ha
 		}
 
 		// check if the password matches the stored one
-		match, err := security.ComparePasswordAndHash(&sendLoginStruct.Password, &localPassword)
+		match, err := helper.ComparePasswordAndHash(&sendLoginStruct.Password, &localPassword)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			logHelper.LogError("authfox", err)
@@ -72,7 +70,7 @@ func loginUser(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) gin.Ha
 		}
 
 		// create session
-		session, err := sessionHelper.CreateSession(&localUserID, redisVerify, redisSession, verify)
+		session, err := helper.CreateSession(&localUserID, redisVerify, redisSession, verify)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			logHelper.LogError("authfox", err)

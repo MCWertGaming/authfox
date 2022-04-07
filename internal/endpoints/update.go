@@ -4,8 +4,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/PurotoApp/authfox/internal/security"
-	"github.com/PurotoApp/authfox/internal/sessionHelper"
+	"github.com/PurotoApp/authfox/internal/helper"
 	"github.com/PurotoApp/libpuroto/logHelper"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis"
@@ -38,7 +37,7 @@ func updatePassword(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) g
 		}
 
 		// validate session
-		valid, err := sessionHelper.SessionValid(&sendDataStruct.UserID, &sendDataStruct.Token, redisSession)
+		valid, err := helper.SessionValid(&sendDataStruct.UserID, &sendDataStruct.Token, redisSession)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			logHelper.LogError("authfox", err)
@@ -58,7 +57,7 @@ func updatePassword(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) g
 			return
 		}
 		// compare passwords
-		match, err := security.ComparePasswordAndHash(&sendDataStruct.PasswordOld, &localPass)
+		match, err := helper.ComparePasswordAndHash(&sendDataStruct.PasswordOld, &localPass)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			logHelper.LogError("authfox", err)
@@ -72,7 +71,7 @@ func updatePassword(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) g
 
 		// update password
 		// TODO recycle hash
-		newPassHash, err := security.CreateHash(&sendDataStruct.PasswordNew)
+		newPassHash, err := helper.CreateHash(&sendDataStruct.PasswordNew)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			logHelper.LogError("authfox", err)

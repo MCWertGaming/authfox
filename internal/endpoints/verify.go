@@ -4,7 +4,7 @@ import (
 	"crypto/subtle"
 	"net/http"
 
-	"github.com/PurotoApp/authfox/internal/sessionHelper"
+	"github.com/PurotoApp/authfox/internal/helper"
 	"github.com/PurotoApp/libpuroto/logHelper"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis"
@@ -42,7 +42,7 @@ func verifyUser(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) gin.H
 			return
 		}
 
-		valid, err := sessionHelper.SessionValid(&sendVerifyStruct.UserID, &sendVerifyStruct.Token, redisVerify)
+		valid, err := helper.SessionValid(&sendVerifyStruct.UserID, &sendVerifyStruct.Token, redisVerify)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			logHelper.LogError("authfox", err)

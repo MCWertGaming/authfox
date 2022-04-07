@@ -1,4 +1,4 @@
-package gormHelper
+package helper
 
 import (
 	"github.com/PurotoApp/libpuroto/logHelper"

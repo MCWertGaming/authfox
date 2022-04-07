@@ -3,7 +3,7 @@ package endpoints
 import (
 	"net/http"
 
-	"github.com/PurotoApp/authfox/internal/sessionHelper"
+	"github.com/PurotoApp/authfox/internal/helper"
 	"github.com/PurotoApp/libpuroto/logHelper"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis"
@@ -32,7 +32,7 @@ func validateSession(redisVerify, redisSession *redis.Client) gin.HandlerFunc {
 			return
 		}
 
-		valid, err := sessionHelper.SessionValid(&sendSessionStruct.UserID, &sendSessionStruct.Token, redisSession)
+		valid, err := helper.SessionValid(&sendSessionStruct.UserID, &sendSessionStruct.Token, redisSession)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			logHelper.LogError("authfox", err)
