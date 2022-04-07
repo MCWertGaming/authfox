@@ -20,10 +20,8 @@ type sendUpdateData struct {
 
 func updatePassword(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// about on incorrect request-header
-		if c.GetHeader("Content-Type") != "application/json" {
-			c.AbortWithStatus(http.StatusBadRequest)
-			logHelper.LogEvent("authfox", "registerUser(): Received request with wrong Content-Type header")
+		// only answer if content-type is set right
+		if helper.JsonRequested(c) {
 			return
 		}
 
