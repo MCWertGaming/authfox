@@ -218,4 +218,3 @@ paths:
           description: The session is invalid
         "500":
           description: Internal server error
-          
