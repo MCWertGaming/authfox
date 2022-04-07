@@ -1,16 +1,14 @@
 package endpoints
 
 import (
-	"context"
 	"crypto/subtle"
 	"net/http"
-	"time"
 
 	"github.com/PurotoApp/authfox/internal/sessionHelper"
 	"github.com/PurotoApp/libpuroto/logHelper"
 	"github.com/gin-gonic/gin"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
+	"github.com/go-redis/redis"
+	"gorm.io/gorm"
 )
 
 type sendVerify struct {
@@ -19,22 +17,7 @@ type sendVerify struct {
 	VerifyCode string `json:"verify_code"`
 }
 
-type saveInitProfile struct {
-	NamePretty      string `bson:"name_pretty"`
-	NameFormat      string `bson:"name_format"`
-	NameStatic      string `bson:"name_static"`
-	UserID          string `bson:"uid"`
-	EMail           string `bson:"email"`
-	BadgeBetaTester bool   `bson:"badge_beta_tester"`
-}
-type saveUserData struct {
-	UserID       string    `bson:"uid"`
-	Password     string    `bson:"password"`
-	RegisterIP   string    `bson:"register_ip"`
-	RegisterTime time.Time `bson:"register_time"`
-}
-
-func verifyUser(collVerifySession, collSession, collVerify, collProfiles, collUsers *mongo.Collection) gin.HandlerFunc {
+func verifyUser(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// only answer if content-type is set right
 		if c.GetHeader("Content-Type") != "application/json" {
@@ -59,13 +42,8 @@ func verifyUser(collVerifySession, collSession, collVerify, collProfiles, collUs
 			return
 		}
 
-		valid, err := sessionHelper.SessionValid(&sendVerifyStruct.UserID, &sendVerifyStruct.Token, collVerifySession, collSession, true)
-
-		if err == mongo.ErrNoDocuments {
-			c.AbortWithStatus(http.StatusUnauthorized)
-			logHelper.LogEvent("authfox", "verifyUser(): Received verification with non existent session")
-			return
-		} else if err != nil {
+		valid, err := sessionHelper.SessionValid(&sendVerifyStruct.UserID, &sendVerifyStruct.Token, redisVerify, redisSession, true)
+		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			logHelper.LogError("authfox", err)
 			return
@@ -76,81 +54,62 @@ func verifyUser(collVerifySession, collSession, collVerify, collProfiles, collUs
 		}
 
 		// retrieve user data
-		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*50)
-		verifyUserRaw := collVerify.FindOne(ctx, bson.D{{Key: "uid", Value: sendVerifyStruct.UserID}})
-		cancel()
-		if verifyUserRaw.Err() != nil {
+		var verifyData Verify
+		if err := pg_conn.Where("user_id = ?", sendVerifyStruct.UserID).Take(&verifyData).Error; err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
-			logHelper.LogError("authfox", verifyUserRaw.Err())
+			logHelper.LogError("authfox", err)
 			return
 		}
 
-		// decode data
-		var localVerifyUser saveVerifyUser
-		if err := verifyUserRaw.Decode(&localVerifyUser); err != nil {
-			c.AbortWithStatus(http.StatusInternalServerError)
-			logHelper.LogError("authfox", verifyUserRaw.Err())
-			return
-		}
-
-		// securely check if the verify roken is valid
-		if subtle.ConstantTimeCompare([]byte(sendVerifyStruct.VerifyCode), []byte(localVerifyUser.VerifyCode)) != 1 {
+		// securely check if the verify token is valid
+		if subtle.ConstantTimeCompare([]byte(sendVerifyStruct.VerifyCode), []byte(verifyData.VerifyCode)) != 1 {
 			c.AbortWithStatus(http.StatusUnauthorized)
 			logHelper.LogEvent("authfox", "verifyUser(): Received verification with invalid Verify-Code")
 			return
 		}
 
 		// create initial user profile
-		var saveUserProfile saveInitProfile
-		saveUserProfile.NamePretty = localVerifyUser.NameFormat
-		saveUserProfile.NameFormat = localVerifyUser.NameFormat
-		saveUserProfile.NameStatic = localVerifyUser.NameStatic
-		saveUserProfile.UserID = localVerifyUser.UserID
-		saveUserProfile.EMail = localVerifyUser.Email
+		var userProfile Profile
+		userProfile.NamePretty = verifyData.NameFormat
+		userProfile.NameFormat = verifyData.NameFormat
+		userProfile.NameStatic = verifyData.NameStatic
+		userProfile.UserID = verifyData.UserID
+		userProfile.Email = verifyData.Email
 		// Giving user the beta tester badge
-		saveUserProfile.BadgeBetaTester = true
+		userProfile.BadgeBetaTester = true
+		userProfile.BadgeAlphaTester = true
+		userProfile.BadgeStaff = false
 		// save into DB
-		ctx, cancel = context.WithTimeout(context.Background(), time.Millisecond*50)
-		_, err = collProfiles.InsertOne(ctx, saveUserProfile)
-		cancel()
-		if err != nil {
+		if err = pg_conn.Create(&userProfile).Error; err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			logHelper.LogError("authfox", err)
 			return
 		}
 
 		// create initial user data
-		var saveUserDataStruct saveUserData
-		saveUserDataStruct.UserID = localVerifyUser.UserID
-		saveUserDataStruct.Password = localVerifyUser.Password
-		saveUserDataStruct.RegisterIP = localVerifyUser.RegisterIP
-		saveUserDataStruct.RegisterTime = localVerifyUser.RegisterTime
+		var userData User
+		userData.UserID = verifyData.UserID
+		userData.Password = verifyData.Password
+		userData.RegisterIP = verifyData.RegisterIP
+		userData.RegisterTime = verifyData.RegisterTime
 		// save into DB
-		ctx, cancel = context.WithTimeout(context.Background(), time.Millisecond*50)
-		_, err = collUsers.InsertOne(ctx, saveUserDataStruct)
-		cancel()
-		if err != nil {
+		if err = pg_conn.Create(&userData).Error; err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			logHelper.LogError("authfox", err)
 			return
 		}
 
 		// delete old data
-		ctx, cancel = context.WithTimeout(context.Background(), time.Millisecond*50)
-		_, err = collVerify.DeleteOne(ctx, bson.D{{Key: "uid", Value: sendVerifyStruct.UserID}})
-		cancel()
-		if err != nil {
+		if err = pg_conn.Delete(&verifyData).Error; err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
-			logHelper.LogError("authfox", verifyUserRaw.Err())
+			logHelper.LogError("authfox", err)
 			return
 		}
+
 		// delete old session
-		ctx, cancel = context.WithTimeout(context.Background(), time.Millisecond*50)
-		_, err = collVerifySession.DeleteOne(ctx, bson.D{{Key: "uid", Value: sendVerifyStruct.UserID}})
-		cancel()
-		if err != nil {
+		if err = redisVerify.Del(sendVerifyStruct.UserID).Err(); err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
-			logHelper.LogError("authfox", verifyUserRaw.Err())
+			logHelper.LogError("authfox", err)
 			return
 		}
 

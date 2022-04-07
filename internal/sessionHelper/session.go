@@ -1,13 +1,11 @@
 package sessionHelper
 
 import (
-	"context"
-	"errors"
+	"crypto/subtle"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"github.com/PurotoApp/authfox/internal/security"
+	"github.com/go-redis/redis"
 )
 
 // session information used for create a new session
@@ -21,91 +19,91 @@ type newSession struct {
 type sessionPair struct {
 	UserID     string `json:"uid"`
 	Token      string `json:"token"`
-	VerifyOnly bool   `json:"verify_only,omitempty"`
+	VerifyOnly bool   `json:"verify_only"`
 }
 
-func CreateSession(userID string, collSession, collVerifySession *mongo.Collection, verify bool) (sessionPair, error) {
-	// genrate new token
-	token, err := generateSessionToken(collSession, collVerifySession)
+// TODO: use string pointer for UID
+func CreateSession(userID string, redisVerify, redisSession *redis.Client, verify bool) (sessionPair, error) {
+	// session token
+	token, err := security.RandomString(512)
 	if err != nil {
 		return sessionPair{}, err
 	}
-
-	// save session
+	// select session type
 	if verify {
-		// check and remove session
-		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*50)
-		_, err := collVerifySession.DeleteOne(ctx, bson.M{"uid": userID})
-		cancel()
-		if err != nil {
+		// creating a verify session, only one is allowed
+		// so we'll just create a new secret and store it into redis
+		// verify session is valid for 2 days
+		// this will override the old session if neccessary
+		if redisVerify.Set(userID, token, time.Hour*48).Err() != nil {
 			return sessionPair{}, err
 		}
-
-		// add session to the verify DB
-		ctx, cancel = context.WithTimeout(context.Background(), time.Millisecond*50)
-		_, err = collVerifySession.InsertOne(ctx, newSession{Token: token, UserID: userID, CreationTime: time.Now()})
-		cancel()
-		if err != nil {
-			return sessionPair{}, err
-		}
+		return sessionPair{UserID: userID, Token: token, VerifyOnly: verify}, nil
 	} else {
-		// check how many sessions are open
-		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*50)
-		count, err := collSession.CountDocuments(ctx, bson.M{"uid": userID}, options.Count().SetLimit(5))
-		cancel()
-		if err != nil {
+		// creating a user session, only 4 are allowed
+		// sessions are valid for 2 days
+		// because redis can only store one key, we'll append a number to the UID
+		// UID[session_number] : token
+		if count, err := redisSession.Exists(userID + "0").Result(); count == 0 {
+			// no sessions, creating one using this ID
+			redisSession.Set(userID+"0", token, time.Hour*24*7)
+			return sessionPair{Token: token, UserID: userID + "0", VerifyOnly: verify}, nil
+		} else if err != nil {
 			return sessionPair{}, err
-		}
-		if count > 4 {
-			// the user has 5 or more sessions, let's remove one
-			ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*50)
-			_, err := collSession.DeleteOne(ctx, bson.M{"uid": userID})
-			cancel()
-			if err != nil {
-				return sessionPair{}, err
-			}
-		}
-
-		// add session to the session DB
-		ctx, cancel = context.WithTimeout(context.Background(), time.Millisecond*50)
-		_, err = collSession.InsertOne(ctx, newSession{Token: token, UserID: userID, CreationTime: time.Now()})
-		cancel()
-		if err != nil {
+		} else if count, err := redisSession.Exists(userID + "1").Result(); count == 0 {
+			// no sessions, creating one using this ID
+			redisSession.Set(userID+"1", token, time.Hour*24*7)
+			return sessionPair{Token: token, UserID: userID + "1", VerifyOnly: verify}, nil
+		} else if err != nil {
 			return sessionPair{}, err
+		} else if count, err := redisSession.Exists(userID + "2").Result(); count == 0 {
+			// no sessions, creating one using this ID
+			redisSession.Set(userID+"2", token, time.Hour*24*7)
+			return sessionPair{Token: token, UserID: userID + "2", VerifyOnly: verify}, nil
+		} else if err != nil {
+			return sessionPair{}, err
+		} else if count, err := redisSession.Exists(userID + "3").Result(); count == 0 {
+			// no sessions, creating one using this ID
+			redisSession.Set(userID+"3", token, time.Hour*24*7)
+			return sessionPair{Token: token, UserID: userID + "3", VerifyOnly: verify}, nil
+		} else if err != nil {
+			return sessionPair{}, err
+		} else if count, err := redisSession.Exists(userID + "4").Result(); count == 0 {
+			// no sessions, creating one using this ID
+			redisSession.Set(userID+"4", token, time.Hour*24*7)
+			return sessionPair{Token: token, UserID: userID + "4", VerifyOnly: verify}, nil
+		} else if err != nil {
+			return sessionPair{}, err
+		} else {
+			// overwrite the first session since the session limit is reached
+			redisSession.Set(userID+"0", token, time.Hour*24*7)
+			return sessionPair{Token: token, UserID: userID + "0", VerifyOnly: verify}, nil
 		}
 	}
-	return sessionPair{Token: token, UserID: userID, VerifyOnly: verify}, nil
 }
 
 // returns true if the session is valid
-func SessionValid(uid, token *string, collVerifySession, collSession *mongo.Collection, verify bool) (bool, error) {
-	var sessionDataRaw *mongo.SingleResult
-
-	// search for the session
+func SessionValid(uid, token *string, redisVerify, redisSession *redis.Client, verify bool) (bool, error) {
+	var res string
+	var err error
+	// switch which db will be used
 	if verify {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*50)
-		sessionDataRaw = collVerifySession.FindOne(ctx, bson.D{{Key: "uid", Value: uid}, {Key: "token", Value: token}})
-		cancel()
+		res, err = redisVerify.Get(*uid).Result()
 	} else {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*50)
-		sessionDataRaw = collSession.FindOne(ctx, bson.D{{Key: "uid", Value: uid}, {Key: "token", Value: token}})
-		cancel()
+		// user session validation
+		// the UID extension is part of the session
+		// so we don't need to handle that
+		res, err = redisSession.Get(*uid).Result()
 	}
 
-	// check error
-	if sessionDataRaw.Err() != nil {
-		return false, sessionDataRaw.Err()
-	}
-
-	// decode DB data
-	var localsessionData newSession
-	if err := sessionDataRaw.Decode(&localsessionData); err != nil {
+	if err != nil {
 		return false, err
+		// } else if res != *token {
+	} else if subtle.ConstantTimeCompare([]byte(res), []byte(*token)) != 1 {
+		// TODO: Use secure matching function
+		// session and token don't match
+		return false, nil
 	}
-	// check if the session is older than 7 days
-	if !localsessionData.CreationTime.Add(time.Hour * 60 * 7).After(time.Now()) {
-		return false, errors.New("sessionValid(): session is outdated")
-	}
-
+	// the session seems valid
 	return true, nil
 }

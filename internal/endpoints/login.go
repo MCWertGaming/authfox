@@ -1,20 +1,18 @@
 package endpoints
 
 import (
-	"context"
 	"errors"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/PurotoApp/authfox/internal/security"
 	"github.com/PurotoApp/authfox/internal/sessionHelper"
-	"github.com/PurotoApp/libpuroto/stringHelper"
+	"github.com/go-redis/redis"
+	"gorm.io/gorm"
 
 	"github.com/PurotoApp/libpuroto/logHelper"
+	"github.com/PurotoApp/libpuroto/stringHelper"
 	"github.com/gin-gonic/gin"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 var (
@@ -35,11 +33,11 @@ type userID struct {
 	UserID string `bson:"uid"`
 }
 
-func loginUser(collUser, collSession, collVerifySession, collVerify, collProfiles *mongo.Collection) gin.HandlerFunc {
+func loginUser(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// only answer if content-type is set right
 		if c.GetHeader("Content-Type") != "application/json" {
-			c.AbortWithStatus(http.StatusBadRequest)
+			c.AbortWithStatus(http.StatusNotAcceptable)
 			logHelper.LogEvent("authfox", "loginUser(): Received request with wrong Content-Type header")
 			return
 		}
@@ -58,42 +56,32 @@ func loginUser(collUser, collSession, collVerifySession, collVerify, collProfile
 			return
 		}
 		// find user
-		userData, verify, err := findUserData(collUser, collVerify, collProfiles, sendLoginStruct.LoginName)
-		// check if the given user not existed
+		localPassword, localUserID, verify, err := findUserData(pg_conn, sendLoginStruct.LoginName)
 		if err == ErrAccountNotExisting {
+			// account does not exist
 			c.AbortWithStatus(http.StatusUnauthorized)
-			logHelper.LogEvent("authfox", "loginUser(): Received login for non existing user")
+			logHelper.LogEvent("authfox", "Received login for non existent account")
 			return
-			// check for internal error
 		} else if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			logHelper.LogError("authfox", err)
 			return
 		}
 
-		// decode DB data
-		var localUserData savedUserData
-		if err := userData.Decode(&localUserData); err != nil {
-			c.AbortWithStatus(http.StatusInternalServerError)
-			logHelper.LogError("authfox", err)
-			return
-		}
-
 		// check if the password matches the stored one
-		match, err := security.ComparePasswordAndHash(sendLoginStruct.Password, localUserData.Password)
+		match, err := security.ComparePasswordAndHash(sendLoginStruct.Password, localPassword)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			logHelper.LogError("authfox", err)
 			return
-		}
-		if !match {
+		} else if !match {
 			c.AbortWithStatus(http.StatusUnauthorized)
 			logHelper.LogEvent("authfox", "loginUser(): Invalid password received")
 			return
 		}
 
 		// create session
-		session, err := sessionHelper.CreateSession(localUserData.UserID, collSession, collVerifySession, verify)
+		session, err := sessionHelper.CreateSession(localUserID, redisVerify, redisSession, verify)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			logHelper.LogError("authfox", err)
@@ -116,52 +104,68 @@ func checkLoginData(loginData sendLogin) bool {
 	return true
 }
 
-func findUserData(collUser, collVerify, collProfiles *mongo.Collection, login string) (userData *mongo.SingleResult, verify bool, err error) {
-	// set the search parameter
-	var loginType string
+func findUserData(pg_conn *gorm.DB, login string) (password, UserID string, verify bool, err error) {
+	// we'll send verify as true on failture as they are limited to a single use case
+
+	var localProfile Profile
+	var res *gorm.DB
+	// switch wether is an email or account name
 	if stringHelper.CheckEmail(strings.ToLower(login)) {
-		loginType = "email"
+		// get account by email
+		res = pg_conn.Where("email = ?", strings.ToLower(login)).Take(&localProfile)
 	} else {
-		loginType = "name_static"
+		// get account by user name
+		res = pg_conn.Where("name_static = ?", strings.ToLower(login)).Take(&localProfile)
 	}
 
-	// find user profile
-	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*50)
-	userProfile := collProfiles.FindOne(ctx, bson.D{{Key: loginType, Value: strings.ToLower(login)}})
-	cancel()
-	// check if a profile was found
-	if userProfile.Err() == mongo.ErrNoDocuments {
-		// user was not found in user DB, check the verify DB
-		ctx, cancel = context.WithTimeout(context.Background(), time.Millisecond*50)
-		userData = collVerify.FindOne(ctx, bson.D{{Key: loginType, Value: strings.ToLower(login)}})
-		cancel()
-		// check if a user was found this time
-		if userData.Err() == mongo.ErrNoDocuments {
-			// user does not excist
-			return &mongo.SingleResult{}, true, ErrAccountNotExisting
-		} else if userData.Err() != nil {
-			return &mongo.SingleResult{}, true, userData.Err()
+	if res.Error != nil && res.Error != gorm.ErrRecordNotFound {
+		return "", "", true, res.Error
+	} else if res.RowsAffected > 1 {
+		// illegal value, two accounts???
+		return "", "", true, errors.New("findUserData(): DB returned multiple accounts for a single search in user table")
+	} else if res.RowsAffected == 0 {
+		// no account was found
+		// searching for one in the verify table
+		var localVerify Verify
+		// switch search method
+		if stringHelper.CheckEmail(strings.ToLower(login)) {
+			// get account by email
+			res = pg_conn.Where("email = ?", strings.ToLower(login)).Take(&localVerify)
+		} else {
+			// get account by user name
+			res = pg_conn.Where("name_static = ?", strings.ToLower(login)).Take(&localVerify)
 		}
-		// valid data was found as it seems!
-		return userData, true, nil
-	} else if userProfile.Err() != nil {
-		return &mongo.SingleResult{}, true, userProfile.Err()
+
+		if res.Error != nil && res.Error != gorm.ErrRecordNotFound {
+			return "", "", true, res.Error
+		} else if res.RowsAffected > 1 {
+			return "", "", true, errors.New("findUserData(): DB returned multiple accounts for a single search in verify table")
+		} else if res.RowsAffected == 0 {
+			// no account was found
+			// returning special error
+			return "", "", true, ErrAccountNotExisting
+		} else if res.RowsAffected == 1 {
+			// account exists! Everything is good
+			return localVerify.Password, localVerify.UserID, true, nil
+		} else {
+			// illegal edge case
+			return "", "", true, errors.New("findUserData(): entered illegal edge case on verify DB checking")
+		}
+	} else if res.RowsAffected == 1 {
+		// account exists! Everything is good
+
+		// fetch password
+		var localUser User
+		res := pg_conn.Where("user_id = ?", localProfile.UserID).Take(&localUser)
+		if res.Error != nil {
+			return "", "", true, res.Error
+		} else if res.RowsAffected != 1 {
+			return "", "", true, errors.New("findUserData(): Invalid number of rows found on getting password from user DB")
+		}
+		// return the found password
+		return localUser.Password, localUser.UserID, false, nil
+	} else {
+		// illegal edge case
+		return "", "", true, errors.New("findUserData(): entered illegal edge case on user DB checking")
 	}
-	// A profile was found, encoding it to get the UserID
-	var userIDStruct userID
-	if err := userProfile.Decode(&userIDStruct); err != nil {
-		return &mongo.SingleResult{}, true, err
-	}
-	// get the data we need
-	ctx, cancel = context.WithTimeout(context.Background(), time.Millisecond*50)
-	userData = collUser.FindOne(ctx, bson.D{{Key: "uid", Value: userIDStruct.UserID}})
-	cancel()
-	if userData.Err() == mongo.ErrNoDocuments {
-		// user does not excist
-		return &mongo.SingleResult{}, true, ErrAccountNotExisting
-	} else if userData.Err() != nil {
-		return &mongo.SingleResult{}, true, userData.Err()
-	}
-	// valid data was found as it seems!
-	return userData, false, nil
 }
