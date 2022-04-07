@@ -38,7 +38,7 @@ func updatePassword(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) g
 		}
 
 		// validate session
-		valid, err := sessionHelper.SessionValid(&sendDataStruct.UserID, &sendDataStruct.Token, redisVerify, redisSession, false)
+		valid, err := sessionHelper.SessionValid(&sendDataStruct.UserID, &sendDataStruct.Token, redisSession)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			logHelper.LogError("authfox", err)

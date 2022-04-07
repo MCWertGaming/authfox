@@ -75,19 +75,13 @@ func CreateSession(userID *string, redisVerify, redisSession *redis.Client, veri
 	}
 }
 
-// returns true if the session is valid
-func SessionValid(uid, token *string, redisVerify, redisSession *redis.Client, verify bool) (bool, error) {
+// returns true if the session of the given redis DB is valid
+func SessionValid(uid, token *string, redisClient *redis.Client) (bool, error) {
 	var res string
 	var err error
-	// switch which db will be used
-	if verify {
-		res, err = redisVerify.Get(*uid).Result()
-	} else {
-		// user session validation
-		// the UID extension is part of the session
-		// so we don't need to handle that
-		res, err = redisSession.Get(*uid).Result()
-	}
+
+	// the UUID session extension is part of the session, so no work is needed
+	res, err = redisClient.Get(*uid).Result()
 
 	if err != nil {
 		return false, err

@@ -42,7 +42,7 @@ func verifyUser(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) gin.H
 			return
 		}
 
-		valid, err := sessionHelper.SessionValid(&sendVerifyStruct.UserID, &sendVerifyStruct.Token, redisVerify, redisSession, true)
+		valid, err := sessionHelper.SessionValid(&sendVerifyStruct.UserID, &sendVerifyStruct.Token, redisVerify)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			logHelper.LogError("authfox", err)

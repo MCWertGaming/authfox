@@ -32,7 +32,7 @@ func validateSession(redisVerify, redisSession *redis.Client) gin.HandlerFunc {
 			return
 		}
 
-		valid, err := sessionHelper.SessionValid(&sendSessionStruct.UserID, &sendSessionStruct.Token, redisVerify, redisSession, false)
+		valid, err := sessionHelper.SessionValid(&sendSessionStruct.UserID, &sendSessionStruct.Token, redisSession)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			logHelper.LogError("authfox", err)
