@@ -11,8 +11,8 @@ func SetRoutes(router *gin.Engine, pg_conn *gorm.DB, redisVerify, redisSession *
 	router.POST("/v1/user", registerUser(pg_conn, redisVerify, redisSession))
 	router.POST("/v1/user/login", loginUser(pg_conn, redisVerify, redisSession))
 	router.POST("/v1/user/verify", verifyUser(pg_conn, redisVerify, redisSession))
-	// router.POST("/v1/user/validate", validateSession(collVerifySession, collSession))
-	// router.PATCH("/v1/user", updatePassword(collVerifySession, collSession, collUsers))
+	router.POST("/v1/user/validate", validateSession(redisVerify, redisSession))
+	router.PATCH("/v1/user", updatePassword(pg_conn, redisVerify, redisSession))
 	// router.POST("/v1/user/delete", accountDeletion(collVerifySession, collSession, collUsers, collProfiles))
 	// swagger docs
 	router.Static("/swagger", "swagger/")

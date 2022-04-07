@@ -1,16 +1,15 @@
 package endpoints
 
 import (
-	"context"
+	"errors"
 	"net/http"
-	"time"
 
 	"github.com/PurotoApp/authfox/internal/security"
 	"github.com/PurotoApp/authfox/internal/sessionHelper"
 	"github.com/PurotoApp/libpuroto/logHelper"
 	"github.com/gin-gonic/gin"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
+	"github.com/go-redis/redis"
+	"gorm.io/gorm"
 )
 
 type sendUpdateData struct {
@@ -24,7 +23,7 @@ type passwordData struct {
 	Password string `bson:"password"`
 }
 
-func updatePassword(collVerifySession, collSession, collUser *mongo.Collection) gin.HandlerFunc {
+func updatePassword(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// about on incorrect request-header
 		if c.GetHeader("Content-Type") != "application/json" {
@@ -43,7 +42,7 @@ func updatePassword(collVerifySession, collSession, collUser *mongo.Collection) 
 		}
 
 		// validate session
-		valid, err := sessionHelper.SessionValid(&sendDataStruct.UserID, &sendDataStruct.Token, collVerifySession, collSession, false)
+		valid, err := sessionHelper.SessionValid(&sendDataStruct.UserID, &sendDataStruct.Token, redisVerify, redisSession, false)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			logHelper.LogError("authfox", err)
@@ -55,24 +54,15 @@ func updatePassword(collVerifySession, collSession, collUser *mongo.Collection) 
 		}
 
 		// validate old password
-		// get the data we need
-		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*50)
-		userData := collUser.FindOne(ctx, bson.D{{Key: "uid", Value: sendDataStruct.UserID}})
-		cancel()
-		if userData.Err() != nil {
+		// get the hashed password
+		localPass, err := findUserPassword(pg_conn, sendDataStruct.UserID)
+		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
-			logHelper.LogError("authfox", userData.Err())
-			return
-		}
-		// decode data
-		var passwordLocal passwordData
-		if err := userData.Decode(&passwordLocal); err != nil {
-			c.AbortWithStatus(http.StatusInternalServerError)
-			logHelper.LogError("authfox", userData.Err())
+			logHelper.LogError("authfox", err)
 			return
 		}
 		// compare passwords
-		match, err := security.ComparePasswordAndHash(sendDataStruct.PasswordOld, passwordLocal.Password)
+		match, err := security.ComparePasswordAndHash(sendDataStruct.PasswordOld, localPass)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			logHelper.LogError("authfox", err)
@@ -86,22 +76,25 @@ func updatePassword(collVerifySession, collSession, collUser *mongo.Collection) 
 
 		// update password
 		// TODO recycle hash
-		passwordLocal.Password, err = security.CreateHash(sendDataStruct.PasswordNew)
+		newPassHash, err := security.CreateHash(sendDataStruct.PasswordNew)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			logHelper.LogError("authfox", err)
 			return
 		}
-		// store into DB
-		ctx, cancel = context.WithTimeout(context.Background(), time.Millisecond*50)
-		_, err = collUser.UpdateOne(ctx, bson.D{{Key: "uid", Value: sendDataStruct.UserID}}, bson.D{{Key: "$set", Value: bson.D{{Key: "password", Value: passwordLocal.Password}}}}) // &passwordLocal)
-		cancel()
-		if err != nil {
-			c.AbortWithStatus(http.StatusInternalServerError)
-			logHelper.LogError("authfox", err)
-			return
-		}
+		// save new pass
+		pg_conn.Model(&User{UserID: sendDataStruct.UserID}).Update("password", newPassHash)
 
 		c.Status(http.StatusAccepted)
 	}
+}
+func findUserPassword(pg_conn *gorm.DB, userID string) (string, error) {
+	var localUser User
+	res := pg_conn.Where("user_id = ?", userID).Take(&localUser)
+	if res.Error != nil {
+		return "", res.Error
+	} else if res.RowsAffected != 1 {
+		return "", errors.New("invalid numbers of rows found while searching for user password")
+	}
+	return localUser.Password, nil
 }
