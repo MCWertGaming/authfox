@@ -23,12 +23,6 @@ type sendLogin struct {
 	LoginName string `json:"login"`
 	Password  string `json:"password"`
 }
-type savedUserData struct {
-	NameStatic string `bson:"name_static"`
-	UserID     string `bson:"uid"`
-	Email      string `bson:"email"`
-	Password   string `bson:"password"`
-}
 type userID struct {
 	UserID string `bson:"uid"`
 }

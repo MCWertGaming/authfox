@@ -19,10 +19,6 @@ type sendUpdateData struct {
 	PasswordNew string `json:"password_new"`
 }
 
-type passwordData struct {
-	Password string `bson:"password"`
-}
-
 func updatePassword(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// about on incorrect request-header

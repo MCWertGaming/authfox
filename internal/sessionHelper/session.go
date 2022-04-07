@@ -8,13 +8,6 @@ import (
 	"github.com/go-redis/redis"
 )
 
-// session information used for create a new session
-type newSession struct {
-	UserID       string    `bson:"uid"`
-	Token        string    `bson:"token"`
-	CreationTime time.Time `bson:"creation_time"`
-}
-
 // session information for sending to the client
 type sessionPair struct {
 	UserID     string `json:"uid"`
