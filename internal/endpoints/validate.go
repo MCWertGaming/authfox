@@ -3,10 +3,10 @@ package endpoints
 import (
 	"net/http"
 
-	"github.com/PurotoApp/authfox/internal/sessionHelper"
+	"github.com/PurotoApp/authfox/internal/helper"
 	"github.com/PurotoApp/libpuroto/logHelper"
 	"github.com/gin-gonic/gin"
-	"go.mongodb.org/mongo-driver/mongo"
+	"github.com/go-redis/redis"
 )
 
 type sendSession struct {
@@ -14,12 +14,10 @@ type sendSession struct {
 	Token  string `json:"token"`
 }
 
-func validateSession(collVerifySession, collSession *mongo.Collection) gin.HandlerFunc {
+func validateSession(redisVerify, redisSession *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// about on incorrect request-header
-		if c.GetHeader("Content-Type") != "application/json" {
-			c.AbortWithStatus(http.StatusBadRequest)
-			logHelper.LogEvent("authfox", "registerUser(): Received request with wrong Content-Type header")
+		// only answer if content-type is set right
+		if helper.JsonRequested(c) {
 			return
 		}
 
@@ -32,7 +30,7 @@ func validateSession(collVerifySession, collSession *mongo.Collection) gin.Handl
 			return
 		}
 
-		valid, err := sessionHelper.SessionValid(&sendSessionStruct.UserID, &sendSessionStruct.Token, collVerifySession, collSession, false)
+		valid, err := helper.SessionValid(&sendSessionStruct.UserID, &sendSessionStruct.Token, redisSession)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			logHelper.LogError("authfox", err)
