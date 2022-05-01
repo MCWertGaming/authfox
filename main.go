@@ -27,5 +27,5 @@ func main() {
 	endpoints.SetRoutes(router, pg_conn, redisVerify, redisSession)
 
 	// start
-	router.Run("localhost:3621")
+	router.Run("0.0.0.0:3621")
 }
