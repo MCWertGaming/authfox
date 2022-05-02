@@ -32,7 +32,7 @@ updates:
       - 'Alekuso'
 
   # Maintain dependencies for go
-  - package-ecosystem: 'go'
+  - package-ecosystem: 'gomod'
     directory: '/'
     schedule:
       interval: 'weekly'
