@@ -1,0 +1,48 @@
+version: 2
+updates:
+  # Maintain dependencies for GitHub Actions
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'daily'
+      time: '06:00'
+      timezone: 'Europe/Berlin'
+    open-pull-requests-limit: 99
+    reviewers:
+      - 'mcwertgaming'
+      - 'Alekuso'
+    assignees:
+      - 'mcwertgaming'
+      - 'Alekuso'
+
+  # Maintain dependencies for docker
+  - package-ecosystem: 'docker'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: sunday
+      time: '06:00'
+      timezone: 'Europe/Berlin'
+    open-pull-requests-limit: 99
+    reviewers:
+      - 'mcwertgaming'
+      - 'Alekuso'
+    assignees:
+      - 'mcwertgaming'
+      - 'Alekuso'
+
+  # Maintain dependencies for go
+  - package-ecosystem: 'go'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: sunday
+      time: '06:00'
+      timezone: 'Europe/Berlin'
+    open-pull-requests-limit: 99
+    reviewers:
+      - 'mcwertgaming'
+      - 'Alekuso'
+    assignees:
+      - 'mcwertgaming'
+      - 'Alekuso'

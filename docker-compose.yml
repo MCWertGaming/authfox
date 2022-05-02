@@ -22,5 +22,22 @@ services:
     restart: unless-stopped
     ports:
       - 6379:6379
-
-    
+  authfox:
+    build: .
+    restart: unless-stopped
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_USER=user
+      - POSTGRES_PASS=pass
+      - POSTGRES_DB=authfox
+      - POSTGRES_PORT=5432
+      - POSTGRES_SSLMODE=disable
+      - POSTGRES_TIMEZONE=Europe/Berlin
+      - REDIS_HOST=redis:6379
+      # No password specified for development
+      #- REDIS_PASS=""
+    ports:
+      # We change the port to allow local debugging
+      - 3622:3621
+    depends_on:
+      - postgres
