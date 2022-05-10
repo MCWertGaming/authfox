@@ -23,7 +23,7 @@ services:
     ports:
       - 6379:6379
   authfox:
-    build: .
+    build: ../
     restart: unless-stopped
     environment:
       - POSTGRES_HOST=postgres
@@ -41,3 +41,9 @@ services:
       - 3622:3621
     depends_on:
       - postgres
+  caddy:
+    image: caddy:latest
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:z
+    ports:
+      - 3623:3623

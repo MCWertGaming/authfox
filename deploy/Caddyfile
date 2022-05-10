@@ -1,0 +1,4 @@
+:3623 {
+    reverse_proxy authfox:3621
+    header Access-Control-Allow-Origin *
+}
