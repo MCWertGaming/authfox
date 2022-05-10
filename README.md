@@ -6,4 +6,3 @@ Authfox is the core service of Puroto. It handles registrations and sessions, bu
 - Registration
 - Session management
 - account removal (partly also done by other services)
-- 
