@@ -42,8 +42,6 @@ services:
     depends_on:
       - postgres
   caddy:
-    image: caddy:latest
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:z
+    build: ./caddy
     ports:
       - 3623:3623
