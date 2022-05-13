@@ -35,7 +35,7 @@ type sendSession struct {
 func validateSession(redisVerify, redisSession *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// only answer if content-type is set right
-		if helper.JsonRequested(c) {
+		if !helper.JsonRequested(c) {
 			return
 		}
 

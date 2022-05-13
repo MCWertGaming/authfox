@@ -39,7 +39,7 @@ type sendUpdateData struct {
 func updatePassword(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// only answer if content-type is set right
-		if helper.JsonRequested(c) {
+		if !helper.JsonRequested(c) {
 			return
 		}
 
