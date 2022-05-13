@@ -1,4 +1,5 @@
 :3623 {
     reverse_proxy authfox:3621
     header Access-Control-Allow-Origin *
+    header Access-Control-Allow-Methods "PUT, POST, GET, DELETE, OPTIONS"
 }
