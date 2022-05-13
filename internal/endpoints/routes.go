@@ -19,6 +19,8 @@
 package endpoints
 
 import (
+	"net/http"
+
 	"github.com/PurotoApp/libpuroto/ginHelper"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis"
@@ -31,10 +33,20 @@ func SetRoutes(router *gin.Engine, pg_conn *gorm.DB, redisVerify, redisSession *
 	router.POST("/v1/user/verify", verifyUser(pg_conn, redisVerify, redisSession))
 	router.POST("/v1/user/validate", validateSession(redisVerify, redisSession))
 	router.PATCH("/v1/user", updatePassword(pg_conn, redisVerify, redisSession))
+	// CORS stuff
+	router.OPTIONS("/v1/user", corsAnswer())
+
 	// router.POST("/v1/user/delete", accountDeletion(collVerifySession, collSession, collUsers, collProfiles))
 	// swagger docs
 	router.Static("/swagger", "swagger/")
 	// user redirects
 	router.GET("/", ginHelper.Redirect("/swagger"))
 	router.GET("/v1", ginHelper.Redirect("/swagger"))
+}
+
+// sends answere to CORS pre-flight
+func corsAnswer() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Status(http.StatusNoContent)
+	}
 }
