@@ -20,7 +20,6 @@ package endpoints
 import (
 	"net/http"
 
-	"github.com/PurotoApp/authfox/internal/helper"
 	"github.com/PurotoApp/libpuroto/libpuroto"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis"
@@ -34,7 +33,7 @@ type sendSession struct {
 func validateSession(redisVerify, redisSession *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// only answer if content-type is set right
-		if helper.JsonRequested(c) {
+		if libpuroto.JsonRequested(c) {
 			return
 		}
 
@@ -47,7 +46,7 @@ func validateSession(redisVerify, redisSession *redis.Client) gin.HandlerFunc {
 			return
 		}
 
-		valid, err := helper.SessionValid(&sendSessionStruct.UserID, &sendSessionStruct.Token, redisSession)
+		valid, err := libpuroto.SessionValid(&sendSessionStruct.UserID, &sendSessionStruct.Token, redisSession)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			libpuroto.LogError("authfox", err)

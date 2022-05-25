@@ -50,7 +50,7 @@ type returnSession struct {
 func registerUser(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// only answer if content-type is set right
-		if helper.JsonRequested(c) {
+		if libpuroto.JsonRequested(c) {
 			return
 		}
 
@@ -102,7 +102,7 @@ func registerUser(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) gin
 		userData.Email = strings.ToLower(sendUserStruct.Email)
 		userData.RegisterIP = c.ClientIP()
 		userData.RegisterTime = time.Now()
-		if userData.VerifyCode, err = helper.RandomString(32); err != nil {
+		if userData.VerifyCode, err = libpuroto.RandomString(32); err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			libpuroto.LogError("authfox", err)
 		}

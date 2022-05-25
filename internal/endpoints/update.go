@@ -38,7 +38,7 @@ type sendUpdateData struct {
 func updatePassword(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// only answer if content-type is set right
-		if helper.JsonRequested(c) {
+		if libpuroto.JsonRequested(c) {
 			return
 		}
 
@@ -52,7 +52,7 @@ func updatePassword(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) g
 		}
 
 		// validate session
-		valid, err := helper.SessionValid(&sendDataStruct.UserID, &sendDataStruct.Token, redisSession)
+		valid, err := libpuroto.SessionValid(&sendDataStruct.UserID, &sendDataStruct.Token, redisSession)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			libpuroto.LogError("authfox", err)

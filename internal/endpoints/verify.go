@@ -21,7 +21,6 @@ import (
 	"crypto/subtle"
 	"net/http"
 
-	"github.com/PurotoApp/authfox/internal/helper"
 	"github.com/PurotoApp/libpuroto/libpuroto"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis"
@@ -37,7 +36,7 @@ type sendVerify struct {
 func verifyUser(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// only answer if content-type is set right
-		if helper.JsonRequested(c) {
+		if libpuroto.JsonRequested(c) {
 			return
 		}
 
@@ -57,7 +56,7 @@ func verifyUser(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) gin.H
 			return
 		}
 
-		valid, err := helper.SessionValid(&sendVerifyStruct.UserID, &sendVerifyStruct.Token, redisVerify)
+		valid, err := libpuroto.SessionValid(&sendVerifyStruct.UserID, &sendVerifyStruct.Token, redisVerify)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			libpuroto.LogError("authfox", err)
