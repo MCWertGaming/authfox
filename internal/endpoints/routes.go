@@ -18,8 +18,6 @@
 package endpoints
 
 import (
-	"net/http"
-
 	"github.com/PurotoApp/libpuroto/libpuroto"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis"
