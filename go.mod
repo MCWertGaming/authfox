@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/PurotoApp/libpuroto v0.0.0-20220525214354-6e3eaffc36b5
-	github.com/gin-gonic/gin@master v1.7.7
+	github.com/gin-gonic/gin v1.7.7
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/google/uuid v1.3.0
 	golang.org/x/crypto v0.0.0-20220518034528-6f7dac969898
@@ -39,6 +39,5 @@ require (
 	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gopkg.in/yaml.v3 v3.0.0 // indirect
 	gorm.io/driver/postgres v1.3.6 // indirect
 )
