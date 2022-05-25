@@ -21,7 +21,7 @@ import (
 	"net/http"
 
 	"github.com/PurotoApp/authfox/internal/helper"
-	"github.com/PurotoApp/libpuroto/logHelper"
+	"github.com/PurotoApp/libpuroto/libpuroto"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis"
 )
@@ -43,18 +43,18 @@ func validateSession(redisVerify, redisSession *redis.Client) gin.HandlerFunc {
 		// put the json into the struct
 		if err := c.BindJSON(&sendSessionStruct); err != nil {
 			c.AbortWithError(http.StatusBadRequest, err)
-			logHelper.LogError("authfox", err)
+			libpuroto.LogError("authfox", err)
 			return
 		}
 
 		valid, err := helper.SessionValid(&sendSessionStruct.UserID, &sendSessionStruct.Token, redisSession)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
-			logHelper.LogError("authfox", err)
+			libpuroto.LogError("authfox", err)
 			return
 		} else if !valid {
 			c.AbortWithStatus(http.StatusUnauthorized)
-			logHelper.LogEvent("authfox", "Received invalid session")
+			libpuroto.LogEvent("authfox", "Received invalid session")
 			return
 		}
 		c.Status(http.StatusOK)

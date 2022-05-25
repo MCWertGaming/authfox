@@ -18,7 +18,9 @@
 package endpoints
 
 import (
-	"github.com/PurotoApp/libpuroto/ginHelper"
+	"net/http"
+
+	"github.com/PurotoApp/libpuroto/libpuroto"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis"
 	"gorm.io/gorm"
@@ -34,6 +36,6 @@ func SetRoutes(router *gin.Engine, pg_conn *gorm.DB, redisVerify, redisSession *
 	// swagger docs
 	router.Static("/swagger", "swagger/")
 	// user redirects
-	router.GET("/", ginHelper.Redirect("/swagger"))
-	router.GET("/v1", ginHelper.Redirect("/swagger"))
+	router.GET("/", libpuroto.Redirect("/swagger"))
+	router.GET("/v1", libpuroto.Redirect("/swagger"))
 }

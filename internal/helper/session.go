@@ -18,7 +18,6 @@
 package helper
 
 import (
-	"crypto/subtle"
 	"time"
 
 	"github.com/go-redis/redis"
@@ -89,24 +88,4 @@ func CreateSession(userID *string, redisVerify, redisSession *redis.Client, veri
 			return sessionPair{Token: token, UserID: *userID + "0", VerifyOnly: verify}, nil
 		}
 	}
-}
-
-// returns true if the session of the given redis DB is valid
-func SessionValid(uid, token *string, redisClient *redis.Client) (bool, error) {
-	var res string
-	var err error
-
-	// the UUID session extension is part of the session, so no work is needed
-	res, err = redisClient.Get(*uid).Result()
-
-	if err != nil {
-		return false, err
-		// } else if res != *token {
-	} else if subtle.ConstantTimeCompare([]byte(res), []byte(*token)) != 1 {
-		// TODO: Use secure matching function
-		// session and token don't match
-		return false, nil
-	}
-	// the session seems valid
-	return true, nil
 }

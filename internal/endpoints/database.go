@@ -19,7 +19,7 @@ package endpoints
 import (
 	"time"
 
-	"github.com/PurotoApp/libpuroto/logHelper"
+	"github.com/PurotoApp/libpuroto/libpuroto"
 	"gorm.io/gorm"
 )
 
@@ -58,6 +58,6 @@ type Profile struct {
 
 func AutoMigrateAuthfox(pg_conn *gorm.DB) {
 	if err := pg_conn.AutoMigrate(&Verify{}, &User{}, &Profile{}); err != nil {
-		logHelper.ErrorPanic(err)
+		libpuroto.ErrorPanic(err)
 	}
 }

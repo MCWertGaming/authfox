@@ -22,7 +22,7 @@ import (
 	"net/http"
 
 	"github.com/PurotoApp/authfox/internal/helper"
-	"github.com/PurotoApp/libpuroto/logHelper"
+	"github.com/PurotoApp/libpuroto/libpuroto"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis"
 	"gorm.io/gorm"
@@ -47,7 +47,7 @@ func updatePassword(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) g
 		// put the json into the struct
 		if err := c.BindJSON(&sendDataStruct); err != nil {
 			c.AbortWithError(http.StatusBadRequest, err)
-			logHelper.LogError("authfox", err)
+			libpuroto.LogError("authfox", err)
 			return
 		}
 
@@ -55,11 +55,11 @@ func updatePassword(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) g
 		valid, err := helper.SessionValid(&sendDataStruct.UserID, &sendDataStruct.Token, redisSession)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
-			logHelper.LogError("authfox", err)
+			libpuroto.LogError("authfox", err)
 			return
 		} else if !valid {
 			c.AbortWithStatus(http.StatusUnauthorized)
-			logHelper.LogEvent("authfox", "Received invalid session")
+			libpuroto.LogEvent("authfox", "Received invalid session")
 			return
 		}
 
@@ -68,19 +68,19 @@ func updatePassword(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) g
 		localPass, err := findUserPassword(pg_conn, &sendDataStruct.UserID)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
-			logHelper.LogError("authfox", err)
+			libpuroto.LogError("authfox", err)
 			return
 		}
 		// compare passwords
 		match, err := helper.ComparePasswordAndHash(&sendDataStruct.PasswordOld, &localPass)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
-			logHelper.LogError("authfox", err)
+			libpuroto.LogError("authfox", err)
 			return
 		}
 		if !match {
 			c.AbortWithStatus(http.StatusUnauthorized)
-			logHelper.LogEvent("authfox", "Invalid password received")
+			libpuroto.LogEvent("authfox", "Invalid password received")
 			return
 		}
 
@@ -89,7 +89,7 @@ func updatePassword(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) g
 		newPassHash, err := helper.CreateHash(&sendDataStruct.PasswordNew)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
-			logHelper.LogError("authfox", err)
+			libpuroto.LogError("authfox", err)
 			return
 		}
 		// save new pass
