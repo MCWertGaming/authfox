@@ -3,7 +3,7 @@ module github.com/PurotoApp/authfox
 go 1.17
 
 require (
-	github.com/PurotoApp/libpuroto v0.0.0-20220525214354-6e3eaffc36b5
+	github.com/PurotoApp/libpuroto v0.0.0-20220525223250-0b94af7b400c
 	github.com/gin-gonic/gin v1.7.7
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/google/uuid v1.3.0

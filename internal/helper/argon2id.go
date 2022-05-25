@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/PurotoApp/libpuroto/libpuroto"
 	"golang.org/x/crypto/argon2"
 )
 
@@ -49,7 +50,7 @@ type usedHashParams struct {
 
 func CreateHash(password *string) (string, error) {
 	// create a random salt
-	salt, err := randomBytes(hashSaltLength)
+	salt, err := libpuroto.RandomBytes(hashSaltLength)
 	if err != nil {
 		return "", err
 	}

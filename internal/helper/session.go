@@ -20,6 +20,7 @@ package helper
 import (
 	"time"
 
+	"github.com/PurotoApp/libpuroto/libpuroto"
 	"github.com/go-redis/redis"
 )
 
@@ -33,7 +34,7 @@ type sessionPair struct {
 // TODO: use string pointer for UID
 func CreateSession(userID *string, redisVerify, redisSession *redis.Client, verify bool) (sessionPair, error) {
 	// session token
-	token, err := RandomString(512)
+	token, err := libpuroto.RandomString(512)
 	if err != nil {
 		return sessionPair{}, err
 	}
