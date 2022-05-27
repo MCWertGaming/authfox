@@ -1,19 +1,18 @@
-/*
-<AuthFox - a simple authentication and session server for Puroto>
-    Copyright (C) 2022  PurotoApp
+/* <AuthFox - a simple authentication and session server for Puroto>
+   Copyright (C) 2022  PurotoApp
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 package endpoints
@@ -25,8 +24,7 @@ import (
 	"time"
 
 	"github.com/PurotoApp/authfox/internal/helper"
-	"github.com/PurotoApp/libpuroto/logHelper"
-	"github.com/PurotoApp/libpuroto/stringHelper"
+	"github.com/PurotoApp/libpuroto/libpuroto"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis"
 	"github.com/google/uuid"
@@ -52,7 +50,7 @@ type returnSession struct {
 func registerUser(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// only answer if content-type is set right
-		if helper.JsonRequested(c) {
+		if libpuroto.JsonRequested(c) {
 			return
 		}
 
@@ -61,13 +59,13 @@ func registerUser(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) gin
 		// put the json into the struct
 		if err := c.BindJSON(&sendUserStruct); err != nil {
 			c.AbortWithError(http.StatusBadRequest, err)
-			logHelper.LogError("authfox", err)
+			libpuroto.LogError("authfox", err)
 			return
 		}
 		// make sure that the received values are legal
 		if !checkSendUserProfile(&sendUserStruct) {
 			c.AbortWithStatus(http.StatusBadRequest)
-			logHelper.LogEvent("authfox", "registerUser(): Received invalid or illegal registration data")
+			libpuroto.LogEvent("authfox", "registerUser(): Received invalid or illegal registration data")
 			return
 		}
 
@@ -75,11 +73,11 @@ func registerUser(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) gin
 		result := pg_conn.Where("name_static = ?", strings.ToLower(sendUserStruct.NameFormat)).Where("email = ?", strings.ToLower(sendUserStruct.Email)).Take(&Verify{})
 		if result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			c.AbortWithStatus(http.StatusInternalServerError)
-			logHelper.LogError("authfox", result.Error)
+			libpuroto.LogError("authfox", result.Error)
 			return
 		} else if result.RowsAffected > 0 {
 			c.AbortWithStatus(http.StatusBadRequest)
-			logHelper.LogEvent("authfox", "Received user that already exists")
+			libpuroto.LogEvent("authfox", "Received user that already exists")
 			return
 		}
 
@@ -90,7 +88,7 @@ func registerUser(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) gin
 		hash, err := helper.CreateHash(&sendUserStruct.Password)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
-			logHelper.LogError("authfox", err)
+			libpuroto.LogError("authfox", err)
 			return
 		}
 		// safe the hashed password
@@ -104,9 +102,9 @@ func registerUser(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) gin
 		userData.Email = strings.ToLower(sendUserStruct.Email)
 		userData.RegisterIP = c.ClientIP()
 		userData.RegisterTime = time.Now()
-		if userData.VerifyCode, err = helper.RandomString(32); err != nil {
+		if userData.VerifyCode, err = libpuroto.RandomString(32); err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
-			logHelper.LogError("authfox", err)
+			libpuroto.LogError("authfox", err)
 		}
 		// create user ID
 		userData.UserID = uuid.New().String()
@@ -114,7 +112,7 @@ func registerUser(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) gin
 		// store into DB
 		if pg_conn.Create(&userData).Error != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
-			logHelper.LogError("authfox", err)
+			libpuroto.LogError("authfox", err)
 			return
 		}
 
@@ -122,7 +120,7 @@ func registerUser(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) gin
 		session, err := helper.CreateSession(&userData.UserID, redisVerify, redisSession, true)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
-			logHelper.LogError("authfox", err)
+			libpuroto.LogError("authfox", err)
 			return
 		}
 
@@ -146,7 +144,7 @@ func checkSendUserProfile(profile *sendUserProfile) bool {
 	}
 
 	// TODO: refuse if the email address is forbidden (trashmail etc)
-	if profile.Email == "" || !stringHelper.CheckEmail(profile.Email) {
+	if profile.Email == "" || !libpuroto.CheckEmail(profile.Email) {
 		return false
 	}
 

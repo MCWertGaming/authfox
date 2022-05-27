@@ -1,27 +1,26 @@
-/*
-<AuthFox - a simple authentication and session server for Puroto>
-    Copyright (C) 2022  PurotoApp
+/* <AuthFox - a simple authentication and session server for Puroto>
+   Copyright (C) 2022  PurotoApp
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 package helper
 
 import (
-	"crypto/subtle"
 	"time"
 
+	"github.com/PurotoApp/libpuroto/libpuroto"
 	"github.com/go-redis/redis"
 )
 
@@ -35,7 +34,7 @@ type sessionPair struct {
 // TODO: use string pointer for UID
 func CreateSession(userID *string, redisVerify, redisSession *redis.Client, verify bool) (sessionPair, error) {
 	// session token
-	token, err := RandomString(512)
+	token, err := libpuroto.RandomString(512)
 	if err != nil {
 		return sessionPair{}, err
 	}
@@ -90,24 +89,4 @@ func CreateSession(userID *string, redisVerify, redisSession *redis.Client, veri
 			return sessionPair{Token: token, UserID: *userID + "0", VerifyOnly: verify}, nil
 		}
 	}
-}
-
-// returns true if the session of the given redis DB is valid
-func SessionValid(uid, token *string, redisClient *redis.Client) (bool, error) {
-	var res string
-	var err error
-
-	// the UUID session extension is part of the session, so no work is needed
-	res, err = redisClient.Get(*uid).Result()
-
-	if err != nil {
-		return false, err
-		// } else if res != *token {
-	} else if subtle.ConstantTimeCompare([]byte(res), []byte(*token)) != 1 {
-		// TODO: Use secure matching function
-		// session and token don't match
-		return false, nil
-	}
-	// the session seems valid
-	return true, nil
 }

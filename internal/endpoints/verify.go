@@ -1,19 +1,18 @@
-/*
-<AuthFox - a simple authentication and session server for Puroto>
-    Copyright (C) 2022  PurotoApp
+/* <AuthFox - a simple authentication and session server for Puroto>
+   Copyright (C) 2022  PurotoApp
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 package endpoints
@@ -22,8 +21,7 @@ import (
 	"crypto/subtle"
 	"net/http"
 
-	"github.com/PurotoApp/authfox/internal/helper"
-	"github.com/PurotoApp/libpuroto/logHelper"
+	"github.com/PurotoApp/libpuroto/libpuroto"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis"
 	"gorm.io/gorm"
@@ -38,7 +36,7 @@ type sendVerify struct {
 func verifyUser(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// only answer if content-type is set right
-		if helper.JsonRequested(c) {
+		if libpuroto.JsonRequested(c) {
 			return
 		}
 
@@ -47,25 +45,25 @@ func verifyUser(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) gin.H
 		// put the json into the struct
 		if err := c.BindJSON(&sendVerifyStruct); err != nil {
 			c.AbortWithError(http.StatusBadRequest, err)
-			logHelper.LogError("authfox", err)
+			libpuroto.LogError("authfox", err)
 			return
 		}
 
 		// check if the send values are valid
 		if !checkVerifyStruct(&sendVerifyStruct) {
 			c.AbortWithStatus(http.StatusBadRequest)
-			logHelper.LogEvent("authfox", "verifyUser(): Recived invalid data")
+			libpuroto.LogEvent("authfox", "verifyUser(): Recived invalid data")
 			return
 		}
 
-		valid, err := helper.SessionValid(&sendVerifyStruct.UserID, &sendVerifyStruct.Token, redisVerify)
+		valid, err := libpuroto.SessionValid(&sendVerifyStruct.UserID, &sendVerifyStruct.Token, redisVerify)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
-			logHelper.LogError("authfox", err)
+			libpuroto.LogError("authfox", err)
 			return
 		} else if !valid {
 			c.AbortWithStatus(http.StatusUnauthorized)
-			logHelper.LogEvent("authfox", "verifyUser(): Received verification with invalid session")
+			libpuroto.LogEvent("authfox", "verifyUser(): Received verification with invalid session")
 			return
 		}
 
@@ -73,14 +71,14 @@ func verifyUser(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) gin.H
 		var verifyData Verify
 		if err := pg_conn.Where("user_id = ?", sendVerifyStruct.UserID).Take(&verifyData).Error; err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
-			logHelper.LogError("authfox", err)
+			libpuroto.LogError("authfox", err)
 			return
 		}
 
 		// securely check if the verify token is valid
 		if subtle.ConstantTimeCompare([]byte(sendVerifyStruct.VerifyCode), []byte(verifyData.VerifyCode)) != 1 {
 			c.AbortWithStatus(http.StatusUnauthorized)
-			logHelper.LogEvent("authfox", "verifyUser(): Received verification with invalid Verify-Code")
+			libpuroto.LogEvent("authfox", "verifyUser(): Received verification with invalid Verify-Code")
 			return
 		}
 
@@ -98,7 +96,7 @@ func verifyUser(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) gin.H
 		// save into DB
 		if err = pg_conn.Create(&userProfile).Error; err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
-			logHelper.LogError("authfox", err)
+			libpuroto.LogError("authfox", err)
 			return
 		}
 
@@ -111,21 +109,21 @@ func verifyUser(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) gin.H
 		// save into DB
 		if err = pg_conn.Create(&userData).Error; err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
-			logHelper.LogError("authfox", err)
+			libpuroto.LogError("authfox", err)
 			return
 		}
 
 		// delete old data
 		if err = pg_conn.Delete(&verifyData).Error; err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
-			logHelper.LogError("authfox", err)
+			libpuroto.LogError("authfox", err)
 			return
 		}
 
 		// delete old session
 		if err = redisVerify.Del(sendVerifyStruct.UserID).Err(); err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
-			logHelper.LogError("authfox", err)
+			libpuroto.LogError("authfox", err)
 			return
 		}
 
