@@ -3,11 +3,11 @@ module github.com/PurotoApp/authfox
 go 1.17
 
 require (
-	github.com/PurotoApp/libpuroto v0.0.0-20220525223250-0b94af7b400c
+	github.com/PurotoApp/libpuroto v0.0.0-20220607150231-e11d6c70b995
 	github.com/gin-gonic/gin v1.8.1
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/google/uuid v1.3.0
-	golang.org/x/crypto v0.0.0-20220518034528-6f7dac969898
+	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e
 	gorm.io/gorm v1.23.5
 )
 
@@ -35,10 +35,10 @@ require (
 	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.1 // indirect
 	github.com/ugorji/go/codec v1.2.7 // indirect
-	golang.org/x/net v0.0.0-20220524220425-1d687d428aca // indirect
+	golang.org/x/net v0.0.0-20220607020251-c690dde0001d // indirect
 	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
 	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gorm.io/driver/postgres v1.3.6 // indirect
+	gorm.io/driver/postgres v1.3.7 // indirect
 )
