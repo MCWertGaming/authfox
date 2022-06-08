@@ -51,7 +51,7 @@ docker-compose up --build
 ## compiling
 Authfox can be compiled using the official go compiler. But first, we need to give authfox the database configuration. This is done via environment variables like the following:
 ```bash
-export POSTGRES_HOST=postgres
+export POSTGRES_HOST=localhost
 export POSTGRES_USER=user
 export POSTGRES_PASS=pass
 export POSTGRES_DB=authfox
