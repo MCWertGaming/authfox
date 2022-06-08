@@ -41,9 +41,7 @@ type sendLogin struct {
 func loginUser(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// only answer if content-type is set right
-		if c.GetHeader("Content-Type") != "application/json" {
-			c.AbortWithStatus(http.StatusNotAcceptable)
-			libpuroto.LogEvent("authfox", "loginUser(): Received request with wrong Content-Type header")
+		if !libpuroto.JsonRequested(c) {
 			return
 		}
 		var sendLoginStruct sendLogin

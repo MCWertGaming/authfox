@@ -50,7 +50,7 @@ type returnSession struct {
 func registerUser(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// only answer if content-type is set right
-		if libpuroto.JsonRequested(c) {
+		if !libpuroto.JsonRequested(c) {
 			return
 		}
 
