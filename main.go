@@ -30,6 +30,13 @@ func main() {
 	redisVerify := libpuroto.Connect(1)
 	redisSession := libpuroto.Connect(2)
 
+	// check if redis can be reached
+	if err := redisVerify.Ping().Err(); err != nil {
+		panic(err)
+	} else if err := redisSession.Ping().Err(); err != nil {
+		panic(err)
+	}
+
 	// migrate all tables
 	endpoints.AutoMigrateAuthfox(pg_conn)
 
