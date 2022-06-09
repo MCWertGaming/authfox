@@ -18,6 +18,7 @@
 package helper
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/PurotoApp/libpuroto/libpuroto"
@@ -31,7 +32,6 @@ type sessionPair struct {
 	VerifyOnly bool   `json:"verify_only"`
 }
 
-// TODO: refactor
 func CreateSession(userID *string, redisVerify, redisSession *redis.Client, verify bool) (sessionPair, error) {
 	// session token
 	token, err := libpuroto.RandomString(512)
@@ -53,76 +53,33 @@ func CreateSession(userID *string, redisVerify, redisSession *redis.Client, veri
 		// sessions are valid for 7 days
 		// because redis can only store one key, we'll append a number to the UID
 		// UID[session_number] : token
-		if count, err := redisSession.Exists(*userID + "0").Result(); count == 0 {
-			// no sessions, removing the next slot to keep the session count at 5
-			if err := redisSession.Del(*userID + "1").Err(); err != nil {
+		var sessionNumber uint8
+
+		// find the first session that can be used
+		for sessionNumber = 0; sessionNumber < 6; sessionNumber++ {
+			// check if a session with that number already exists
+			if count, err := redisSession.Exists(*userID + strconv.Itoa(int(sessionNumber))).Result(); count == 0 {
+				break
+			} else if err != nil {
 				return sessionPair{}, err
 			}
-			// creating one using this ID
-			if err := redisSession.Set(*userID+"0", token, time.Hour*24*7).Err(); err != nil {
-				return sessionPair{}, err
-			}
-			return sessionPair{Token: token, UserID: *userID + "0", VerifyOnly: verify}, nil
-		} else if err != nil {
-			return sessionPair{}, err
-		} else if count, err := redisSession.Exists(*userID + "1").Result(); count == 0 {
-			// no sessions, removing the next slot to keep the session count at 5
-			if err := redisSession.Del(*userID + "2").Err(); err != nil {
-				return sessionPair{}, err
-			}
-			// creating one using this ID
-			if err := redisSession.Set(*userID+"1", token, time.Hour*24*7).Err(); err != nil {
-				return sessionPair{}, err
-			}
-			return sessionPair{Token: token, UserID: *userID + "1", VerifyOnly: verify}, nil
-		} else if err != nil {
-			return sessionPair{}, err
-		} else if count, err := redisSession.Exists(*userID + "2").Result(); count == 0 {
-			// no sessions, removing the next slot to keep the session count at 5
-			if err := redisSession.Del(*userID + "3").Err(); err != nil {
-				return sessionPair{}, err
-			}
-			// creating one using this ID
-			if err := redisSession.Set(*userID+"2", token, time.Hour*24*7).Err(); err != nil {
-				return sessionPair{}, err
-			}
-			return sessionPair{Token: token, UserID: *userID + "2", VerifyOnly: verify}, nil
-		} else if err != nil {
-			return sessionPair{}, err
-		} else if count, err := redisSession.Exists(*userID + "3").Result(); count == 0 {
-			// no sessions, removing the next slot to keep the session count at 5
-			if err := redisSession.Del(*userID + "4").Err(); err != nil {
-				return sessionPair{}, err
-			}
-			// creating one using this ID
-			if err := redisSession.Set(*userID+"3", token, time.Hour*24*7).Err(); err != nil {
-				return sessionPair{}, err
-			}
-			return sessionPair{Token: token, UserID: *userID + "3", VerifyOnly: verify}, nil
-		} else if err != nil {
-			return sessionPair{}, err
-		} else if count, err := redisSession.Exists(*userID + "4").Result(); count == 0 {
-			// no sessions, removing the next slot to keep the session count at 5
-			if err := redisSession.Del(*userID + "5").Err(); err != nil {
-				return sessionPair{}, err
-			}
-			// creating one using this ID
-			if err := redisSession.Set(*userID+"4", token, time.Hour*24*7).Err(); err != nil {
-				return sessionPair{}, err
-			}
-			return sessionPair{Token: token, UserID: *userID + "4", VerifyOnly: verify}, nil
-		} else if err != nil {
-			return sessionPair{}, err
-		} else {
-			// no sessions, removing the next slot to keep the session count at 5
+		}
+		// removing the next slot to keep the session count at 5
+		// the 5th slot removes the first
+		if sessionNumber == 5 {
 			if err := redisSession.Del(*userID + "0").Err(); err != nil {
 				return sessionPair{}, err
 			}
-			// create a 6th session because the first one is made free again
-			if err := redisSession.Set(*userID+"5", token, time.Hour*24*7).Err(); err != nil {
+		} else {
+			// remove the next slot
+			if err := redisSession.Del(*userID + strconv.Itoa(int(sessionNumber+1))).Err(); err != nil {
 				return sessionPair{}, err
 			}
-			return sessionPair{Token: token, UserID: *userID + "5", VerifyOnly: verify}, nil
 		}
+		// creating one using this ID
+		if err := redisSession.Set(*userID+strconv.Itoa(int(sessionNumber)), token, time.Hour*24*7).Err(); err != nil {
+			return sessionPair{}, err
+		}
+		return sessionPair{Token: token, UserID: *userID + strconv.Itoa(int(sessionNumber)), VerifyOnly: verify}, nil
 	}
 }
