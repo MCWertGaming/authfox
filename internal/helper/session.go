@@ -31,7 +31,7 @@ type sessionPair struct {
 	VerifyOnly bool   `json:"verify_only"`
 }
 
-// TODO: use string pointer for UID
+// TODO: refactor
 func CreateSession(userID *string, redisVerify, redisSession *redis.Client, verify bool) (sessionPair, error) {
 	// session token
 	token, err := libpuroto.RandomString(512)
