@@ -57,4 +57,7 @@ func main() {
 		libpuroto.ErrorPanic(err)
 	}
 
+	// clean up
+	redisVerify.Close()
+	redisSession.Close()
 }
