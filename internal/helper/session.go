@@ -49,44 +49,56 @@ func CreateSession(userID *string, redisVerify, redisSession *redis.Client, veri
 		}
 		return sessionPair{UserID: *userID, Token: token, VerifyOnly: verify}, nil
 	} else {
-		// creating a user session, only 4 are allowed
-		// sessions are valid for 2 days
+		// creating a user session, only 5 are allowed
+		// sessions are valid for 7 days
 		// because redis can only store one key, we'll append a number to the UID
 		// UID[session_number] : token
 		if count, err := redisSession.Exists(*userID + "0").Result(); count == 0 {
-			// no sessions, creating one using this ID
+			// no sessions, removing the next slot to keep the session count at 5
+			redisSession.Del(*userID + "1")
+			// creating one using this ID
 			redisSession.Set(*userID+"0", token, time.Hour*24*7)
 			return sessionPair{Token: token, UserID: *userID + "0", VerifyOnly: verify}, nil
 		} else if err != nil {
 			return sessionPair{}, err
 		} else if count, err := redisSession.Exists(*userID + "1").Result(); count == 0 {
-			// no sessions, creating one using this ID
+			// no sessions, removing the next slot to keep the session count at 5
+			redisSession.Del(*userID + "2")
+			// creating one using this ID
 			redisSession.Set(*userID+"1", token, time.Hour*24*7)
 			return sessionPair{Token: token, UserID: *userID + "1", VerifyOnly: verify}, nil
 		} else if err != nil {
 			return sessionPair{}, err
 		} else if count, err := redisSession.Exists(*userID + "2").Result(); count == 0 {
-			// no sessions, creating one using this ID
+			// no sessions, removing the next slot to keep the session count at 5
+			redisSession.Del(*userID + "3")
+			// creating one using this ID
 			redisSession.Set(*userID+"2", token, time.Hour*24*7)
 			return sessionPair{Token: token, UserID: *userID + "2", VerifyOnly: verify}, nil
 		} else if err != nil {
 			return sessionPair{}, err
 		} else if count, err := redisSession.Exists(*userID + "3").Result(); count == 0 {
-			// no sessions, creating one using this ID
+			// no sessions, removing the next slot to keep the session count at 5
+			redisSession.Del(*userID + "4")
+			// creating one using this ID
 			redisSession.Set(*userID+"3", token, time.Hour*24*7)
 			return sessionPair{Token: token, UserID: *userID + "3", VerifyOnly: verify}, nil
 		} else if err != nil {
 			return sessionPair{}, err
 		} else if count, err := redisSession.Exists(*userID + "4").Result(); count == 0 {
-			// no sessions, creating one using this ID
+			// no sessions, removing the next slot to keep the session count at 5
+			redisSession.Del(*userID + "5")
+			// creating one using this ID
 			redisSession.Set(*userID+"4", token, time.Hour*24*7)
 			return sessionPair{Token: token, UserID: *userID + "4", VerifyOnly: verify}, nil
 		} else if err != nil {
 			return sessionPair{}, err
 		} else {
-			// overwrite the first session since the session limit is reached
-			redisSession.Set(*userID+"0", token, time.Hour*24*7)
-			return sessionPair{Token: token, UserID: *userID + "0", VerifyOnly: verify}, nil
+			// no sessions, removing the next slot to keep the session count at 5
+			redisSession.Del(*userID + "0")
+			// create a 6th session because the first one is made free again
+			redisSession.Set(*userID+"5", token, time.Hour*24*7)
+			return sessionPair{Token: token, UserID: *userID + "5", VerifyOnly: verify}, nil
 		}
 	}
 }
