@@ -18,11 +18,79 @@
 package main
 
 import (
-	"github.com/PurotoApp/authfox/internal/endpoints"
+	"encoding/base64"
+	"encoding/binary"
+	"fmt"
+	"time"
+
 	"github.com/PurotoApp/libpuroto/libpuroto"
-	"github.com/gin-gonic/gin"
 )
 
+// test
+
+type TestDB1 struct {
+	ID        uint `gorm:"primaryKey"`
+	CreatedAt time.Time
+	Test      string
+}
+
+func createID(id uint, create_time time.Time) string {
+	var bits uint64 = uint64(create_time.Unix() << 16)
+	var bits_new uint64 = uint64(bits | uint64(id))
+	b := make([]byte, 8)
+	binary.LittleEndian.PutUint64(b, uint64(bits_new))
+	return base64.RawStdEncoding.EncodeToString(b)
+}
+func getRowNum(ID string, create_time time.Time) uint {
+	decoded, _ := base64.RawStdEncoding.DecodeString(ID)
+	return uint(binary.LittleEndian.Uint64(decoded) & uint64(create_time.Unix()))
+}
+
+func main() {
+	// connect to the PostgreSQL
+	pg_conn := libpuroto.ConnectDB()
+
+	if err := pg_conn.AutoMigrate(TestDB1{}); err != nil {
+		libpuroto.ErrorPanic(err)
+	}
+	var testRow TestDB1
+	var created_id string
+	for i := 0; i < 9000; i++ {
+		testRow = TestDB1{Test: "Hello"}
+		pg_conn.Create(&testRow)
+		created_id = createID(testRow.ID, testRow.CreatedAt)
+		fmt.Println(created_id)
+		if testRow.ID != getRowNum(created_id, testRow.CreatedAt) {
+			fmt.Println("Error!")
+		}
+	}
+}
+
+/*
+type TestDB struct {
+	ID        string
+	CreatedAt time.Time
+	Test      string
+}
+
+func main() {
+	// connect to the PostgreSQL
+	pg_conn := libpuroto.ConnectDB()
+
+	if err := pg_conn.AutoMigrate(TestDB{}); err != nil {
+		libpuroto.ErrorPanic(err)
+	}
+	var testRow TestDB
+
+	for i := 0; i < 9000; i++ {
+		testRow = TestDB{Test: "Hello", ID: string(uuid.New().String())}
+		pg_conn.Create(&testRow)
+		fmt.Println(testRow.ID)
+	}
+}
+*/
+// ------------------------
+/*
 func main() {
 	// connect to the PostgreSQL
 	pg_conn := libpuroto.ConnectDB()
@@ -45,3 +113,4 @@ func main() {
 	// start
 	router.Run("0.0.0.0:3621")
 }
+*/
