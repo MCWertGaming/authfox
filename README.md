@@ -58,7 +58,7 @@ export POSTGRES_DB=authfox
 export POSTGRES_PORT=5432
 export POSTGRES_SSLMODE=disable
 export POSTGRES_TIMEZONE=Europe/Berlin
-export REDIS_HOST=redis:6379
+export REDIS_HOST=localhost:6379
 # optional, can be kept blank
 export REDIS_PASS=""
 ```
