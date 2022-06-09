@@ -105,12 +105,13 @@ func registerUser(pg_conn *gorm.DB, redisVerify, redisSession *redis.Client) gin
 		if userData.VerifyCode, err = libpuroto.RandomString(32); err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			libpuroto.LogError("authfox", err)
+			return
 		}
 		// create user ID
 		userData.UserID = uuid.New().String()
 
 		// store into DB
-		if pg_conn.Create(&userData).Error != nil {
+		if err = pg_conn.Create(&userData).Error; err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			libpuroto.LogError("authfox", err)
 			return

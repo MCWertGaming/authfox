@@ -44,7 +44,7 @@ func CreateSession(userID *string, redisVerify, redisSession *redis.Client, veri
 		// so we'll just create a new secret and store it into redis
 		// verify session is valid for 2 days
 		// this will override the old session if neccessary
-		if redisVerify.Set(*userID, token, time.Hour*48).Err() != nil {
+		if err = redisVerify.Set(*userID, token, time.Hour*48).Err(); err != nil {
 			return sessionPair{}, err
 		}
 		return sessionPair{UserID: *userID, Token: token, VerifyOnly: verify}, nil
