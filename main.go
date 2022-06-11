@@ -26,9 +26,19 @@ import (
 func main() {
 	// connect to the PostgreSQL
 	pg_conn := libpuroto.ConnectDB()
+	if pg_conn.Error != nil {
+		libpuroto.ErrorPanic(pg_conn.Error)
+	}
 	// Connect to Redis
 	redisVerify := libpuroto.Connect(1)
 	redisSession := libpuroto.Connect(2)
+
+	// check if redis can be reached
+	if err := redisVerify.Ping().Err(); err != nil {
+		libpuroto.ErrorPanic(err)
+	} else if err := redisSession.Ping().Err(); err != nil {
+		libpuroto.ErrorPanic(err)
+	}
 
 	// migrate all tables
 	endpoints.AutoMigrateAuthfox(pg_conn)
@@ -43,5 +53,11 @@ func main() {
 	endpoints.SetRoutes(router, pg_conn, redisVerify, redisSession)
 
 	// start
-	router.Run("0.0.0.0:3621")
+	if err := router.Run("0.0.0.0:3621"); err != nil {
+		libpuroto.ErrorPanic(err)
+	}
+
+	// clean up
+	redisVerify.Close()
+	redisSession.Close()
 }

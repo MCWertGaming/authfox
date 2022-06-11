@@ -3,6 +3,8 @@ github.com/Masterminds/semver/v3 v3.1.1 h1:hLg3sBzpNErnxhQtUy/mmLR2I9foDujNK030I
 github.com/Masterminds/semver/v3 v3.1.1/go.mod h1:VPu/7SZ7ePZ3QOrcuXROw5FAcLl4a0cBrbBpGY/8hQs=
 github.com/PurotoApp/libpuroto v0.0.0-20220607150231-e11d6c70b995 h1:cPjEoPGZvv6tsh49KJ01NujtRCnXyqT3qm4rl+pjrxo=
 github.com/PurotoApp/libpuroto v0.0.0-20220607150231-e11d6c70b995/go.mod h1:7UleT91BY4Wt9ykMyaah2YggN17J1vmQBjIfd6LM5AQ=
+github.com/PurotoApp/libpuroto v0.0.0-20220609195122-686cc0bf0dc5 h1:Yhhv4ptWisUrPRjLY7L0cPtpAA9jc9xdy3ZdH+CqnZI=
+github.com/PurotoApp/libpuroto v0.0.0-20220609195122-686cc0bf0dc5/go.mod h1:7UleT91BY4Wt9ykMyaah2YggN17J1vmQBjIfd6LM5AQ=
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=
 github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e/go.mod h1:nSuG5e5PlCu98SY8svDHJxuZscDgtXS6KTTbou5AhLI=
 github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1/go.mod h1:Q3SI9o4m/ZMnBNeIyt5eFwwo7qiLfzFZmjNmxjkiQlU=
