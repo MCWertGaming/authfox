@@ -1,5 +1,7 @@
 ![Authfox project logo](.github/media/authfox.svg)
 
+> This is the former authentication server of Puroto. Archived by it's main developer.
+
 ---
 Authfox is a simple session and authentication server that poweres and secures the Puroto social media. The basic design concepts are simplicity and security. It's one part of the Puroto stack and of the Puroto backend API.
 
